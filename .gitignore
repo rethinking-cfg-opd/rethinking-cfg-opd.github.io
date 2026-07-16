@@ -1,0 +1,11 @@
+# Non-deployed: raw originals & working files (never upload)
+# source/ = 55 MB original PDF, extraction scripts, unzipped cells
+source/
+# assets/ori_figures/ = raw/original figure exports + keynote source frames (255 MB)
+assets/ori_figures/
+# local tooling/session config
+.claude/
+
+# OS / editor cruft
+.DS_Store
+**/.DS_Store
