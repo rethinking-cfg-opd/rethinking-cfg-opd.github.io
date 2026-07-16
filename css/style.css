@@ -238,8 +238,7 @@ table.dgrid td .cell img { width: 100%; height: auto; display: block; cursor: zo
 
 /* figure grids (VKD / identity): sample groups + non-highlighted target */
 table.figgrid td[rowspan] { vertical-align: middle; }
-table.figgrid tr.ours td:last-child .cell,
-table.figgrid td .cell.tgt { border-color: var(--line); box-shadow: none; }
+table.figgrid tr.ours td .cell.tgt { border-color: var(--line); box-shadow: none; }
 table.figgrid tr.sample-sep > * { padding-top: 16px; }
 table.figgrid td .cell { max-width: 300px; }
 
