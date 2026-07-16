@@ -262,6 +262,23 @@ table.figgrid td .cell { max-width: 300px; }
 .tabpane.active { display: block; animation: fade .25s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
+/* ---------- Carousel (one case at a time) ---------- */
+.carousel-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 16px; }
+.cbtn {
+  width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  font-size: 22px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .12s ease, color .12s ease, box-shadow .12s ease;
+}
+.cbtn:hover { border-color: var(--accent); color: var(--accent-dark); box-shadow: var(--shadow); }
+.cbtn:active { transform: translateY(1px); }
+.ccount { font-size: 14.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; min-width: 58px; text-align: center; }
+.ccount b { color: var(--ink); font-weight: 700; }
+.carousel-slides { position: relative; }
+.cslide { display: none; }
+.cslide.active { display: block; animation: fade .25s ease; }
+
 /* ---------- Video placeholder slot ---------- */
 .video-slot {
   margin-top: 20px; border: 2px dashed var(--line); border-radius: var(--radius);

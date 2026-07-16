@@ -104,32 +104,40 @@ const FIGS = {
 };
 
 const pad2 = (n) => String(n).padStart(2, "0");
+const cell = (src, alt) =>
+  `<td><div class="cell"><img loading="lazy" decoding="async" src="${src}" alt="${alt}"></div></td>`;
+
+/* wrap N slides in a left/right carousel (one case at a time) */
+function carouselWrap(slidesHtml, n) {
+  return `<div class="carousel" data-carousel>
+    <div class="carousel-nav">
+      <button class="cbtn prev" type="button" aria-label="Previous case">&#8249;</button>
+      <span class="ccount"><b>1</b> / ${n}</span>
+      <button class="cbtn next" type="button" aria-label="Next case">&#8250;</button>
+    </div>
+    <div class="carousel-slides">${slidesHtml}</div>
+  </div>`;
+}
+
+/* one sample's grid: PDM (ours) + Naive rows, CFG columns + shared Target */
+function figSlide(cfg, id, s) {
+  const cols = ["cfg1", "cfg2", "cfg3"];
+  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
+  cfg.cols.forEach((c) => (h += `<th class="colhead">${c}</th>`));
+  h += "</tr></thead><tbody>";
+  h += `<tr class="ours"><th class="rowhead"><span class="rowlabel-strong">PDM<span class="ours-pill">OURS</span></span></th>`;
+  cols.forEach((c) => (h += cell(`${cfg.dir}/s${s}_ours_${c}.webp`, `${id} PDM ${c}`)));
+  h += `<td rowspan="2"><div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/s${s}_target.webp" alt="target"></div></td></tr>`;
+  h += `<tr><th class="rowhead">Naive</th>`;
+  cols.forEach((c) => (h += cell(`${cfg.dir}/s${s}_naive_${c}.webp`, `${id} naive ${c}`)));
+  h += "</tr></tbody></table></div>";
+  return h;
+}
 
 function buildFigGrid(id) {
   const cfg = FIGS[id];
-  const cols = ["cfg1", "cfg2", "cfg3"];
-  let html = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
-  cfg.cols.forEach((c) => (html += `<th class="colhead">${c}</th>`));
-  html += "</tr></thead><tbody>";
-  cfg.samples.forEach((sn, si) => {
-    const s = pad2(sn);
-    const sep = si > 0 ? " sample-sep" : "";
-    const cell = (src, alt) =>
-      `<td><div class="cell"><img loading="lazy" decoding="async" src="${src}" alt="${alt}"></div></td>`;
-    // Ours (PDM) row — highlighted; Target spans both rows
-    html += `<tr class="ours${sep}">`;
-    html += `<th class="rowhead"><span class="rowlabel-strong">PDM<span class="ours-pill">OURS</span></span></th>`;
-    cols.forEach((c) => (html += cell(`${cfg.dir}/s${s}_ours_${c}.webp`, `${id} sample ${s} PDM ${c}`)));
-    html += `<td rowspan="2"><div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/s${s}_target.webp" alt="target ${s}"></div></td>`;
-    html += "</tr>";
-    // Naive row
-    html += `<tr>`;
-    html += `<th class="rowhead">Naive</th>`;
-    cols.forEach((c) => (html += cell(`${cfg.dir}/s${s}_naive_${c}.webp`, `${id} sample ${s} naive ${c}`)));
-    html += "</tr>";
-  });
-  html += "</tbody></table></div>";
-  return html;
+  const slides = cfg.samples.map((sn) => `<div class="cslide">${figSlide(cfg, id, pad2(sn))}</div>`).join("");
+  return carouselWrap(slides, cfg.samples.length);
 }
 
 /* ---- Fig 2b: pose-control NBA across guidance scales ----------------------
@@ -151,29 +159,48 @@ const NBA_POSE = {
   ],
 };
 
+/* one clip's grid: GT + PDM/Naive at γ=1,3,5 over keyframes */
+function poseSlide(cfg, clip) {
+  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
+  cfg.cols.forEach((c) => (h += `<th class="colhead kf">${c}</th>`));
+  h += "</tr></thead><tbody>";
+  cfg.rows.forEach((r) => {
+    h += `<tr class="${r.ours ? "ours" : ""}">`;
+    const inner = r.ours
+      ? `<span class="rowlabel-strong">${r.label}<span class="ours-pill">OURS</span></span>`
+      : r.label;
+    h += `<th class="rowhead">${inner}</th>`;
+    for (let i = 0; i < cfg.cols.length; i++) {
+      h += cell(`${cfg.dir}/${clip}_${r.key}_kf${i}.webp`, `${r.label} kf${i}`);
+    }
+    h += "</tr>";
+  });
+  h += "</tbody></table></div>";
+  return h;
+}
+
 function buildNbaPoseGrid() {
   const cfg = NBA_POSE;
-  let html = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
-  cfg.cols.forEach((c) => (html += `<th class="colhead kf">${c}</th>`));
-  html += "</tr></thead><tbody>";
-  cfg.clips.forEach((clip, ci) => {
-    cfg.rows.forEach((r, ri) => {
-      const sep = ri === 0 && ci > 0 ? " sample-sep" : "";
-      html += `<tr class="${r.ours ? "ours" : ""}${sep}">`;
-      const lbl = r.label;
-      const inner = r.ours
-        ? `<span class="rowlabel-strong">${lbl}<span class="ours-pill">OURS</span></span>`
-        : lbl;
-      html += `<th class="rowhead">${inner}</th>`;
-      for (let i = 0; i < cfg.cols.length; i++) {
-        const src = `${cfg.dir}/${clip}_${r.key}_kf${i}.webp`;
-        html += `<td><div class="cell"><img loading="lazy" decoding="async" src="${src}" alt="clip ${clip} ${r.label} kf${i}"></div></td>`;
-      }
-      html += "</tr>";
-    });
+  const slides = cfg.clips.map((clip) => `<div class="cslide">${poseSlide(cfg, clip)}</div>`).join("");
+  return carouselWrap(slides, cfg.clips.length);
+}
+
+/* ---- Carousels (one case at a time, left/right nav) ----------------------- */
+function initCarousels() {
+  document.querySelectorAll("[data-carousel]").forEach((car) => {
+    const slides = [...car.querySelectorAll(".cslide")];
+    if (!slides.length) return;
+    let idx = 0;
+    const countEl = car.querySelector(".ccount b");
+    const show = (i) => {
+      idx = (i + slides.length) % slides.length;
+      slides.forEach((s, j) => s.classList.toggle("active", j === idx));
+      if (countEl) countEl.textContent = idx + 1;
+    };
+    car.querySelector(".cbtn.prev").addEventListener("click", () => show(idx - 1));
+    car.querySelector(".cbtn.next").addEventListener("click", () => show(idx + 1));
+    show(0);
   });
-  html += "</tbody></table></div>";
-  return html;
 }
 
 /* ---- Tabs ----------------------------------------------------------------- */
@@ -269,6 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
       throwOnError: false,
     });
   }
+  initCarousels();
   initTabs();
   initLightbox();
   initCopy();
