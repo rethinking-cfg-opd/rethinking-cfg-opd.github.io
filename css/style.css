@@ -279,17 +279,6 @@ table.figgrid td .cell { max-width: 300px; }
 .cslide { display: none; }
 .cslide.active { display: block; animation: fade .25s ease; }
 
-/* ---------- Video placeholder slot ---------- */
-.video-slot {
-  margin-top: 20px; border: 2px dashed var(--line); border-radius: var(--radius);
-  background: repeating-linear-gradient(45deg, var(--bg-alt), var(--bg-alt) 12px, #fff 12px, #fff 24px);
-  padding: 26px; text-align: center;
-}
-.video-slot .vt { font-weight: 650; color: var(--ink); font-size: 15.5px; }
-.video-slot .vp { color: var(--ink-faint); font-size: 13.5px; margin-top: 6px; }
-.video-slot code { background: var(--accent-soft); color: var(--accent-dark); padding: 2px 7px; border-radius: 6px; font-size: 12.5px; }
-.video-slot video { max-width: 100%; border-radius: var(--radius-sm); display: block; margin: 0 auto; }
-
 /* ---------- Placeholder figure grid (Fig2 / Fig4 to be filled) ---------- */
 .ph-note {
   display:flex; align-items:center; gap:10px; justify-content:center;

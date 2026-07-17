@@ -21,7 +21,6 @@ const D2S = {
       { key: "naive",     label: "Naive CFG-OPD" },
       { key: "ours",      label: "PDM", ours: true },
     ],
-    video: "assets/videos/pose_comparison.mp4",
   },
   depth: {
     cols: ["Frame 0", "Frame 10", "Frame 20", "Frame 30", "Frame 40", "Frame 50", "Frame 60"],
@@ -36,7 +35,6 @@ const D2S = {
       { key: "naive",     label: "Naive CFG-OPD" },
       { key: "ours",      label: "PDM", ours: true },
     ],
-    video: "assets/videos/depth_comparison.mp4",
   },
   scribble: {
     cols: ["Frame 0", "Frame 10", "Frame 20", "Frame 30", "Frame 40", "Frame 50", "Frame 60"],
@@ -51,7 +49,6 @@ const D2S = {
       { key: "naive",     label: "Naive CFG-OPD" },
       { key: "ours",      label: "PDM", ours: true },
     ],
-    video: "assets/videos/scribble_comparison.mp4",
   },
 };
 
@@ -77,13 +74,6 @@ function buildD2SGrid(mod) {
     html += "</tr>";
   });
   html += "</tbody></table></div>";
-
-  // optional video slot (placeholder until the user supplies the clip)
-  html += `
-    <div class="video-slot" data-video="${cfg.video}">
-      <div class="vt">▶ Full-rollout video comparison — placeholder</div>
-      <div class="vp">Drop your rendered clip at <code>${cfg.video}</code> (and/or a <code>.webm</code>). It will appear here automatically.</div>
-    </div>`;
   return html;
 }
 
@@ -253,28 +243,6 @@ function initCopy() {
   });
 }
 
-/* ---- Try to load real videos if present ----------------------------------- */
-function initVideoSlots() {
-  document.querySelectorAll(".video-slot").forEach((slot) => {
-    const src = slot.dataset.video;
-    if (!src) return;
-    const test = document.createElement("video");
-    fetch(src, { method: "HEAD" })
-      .then((res) => {
-        if (!res.ok) return;
-        const base = src.replace(/\.mp4$/, "");
-        slot.style.border = "none";
-        slot.style.background = "none";
-        slot.style.padding = "0";
-        slot.innerHTML =
-          `<video controls muted loop playsinline preload="metadata">` +
-          `<source src="${base}.webm" type="video/webm">` +
-          `<source src="${src}" type="video/mp4"></video>`;
-      })
-      .catch(() => {});
-  });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   Object.keys(D2S).forEach((mod) => {
     const el = document.getElementById(`grid-${mod}`);
@@ -301,5 +269,4 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initLightbox();
   initCopy();
-  initVideoSlots();
 });

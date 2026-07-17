@@ -14,7 +14,6 @@ assets/
     teaser.webp            # Fig. 1 teaser  (replace with your own PNG anytime)
     d2s/                   # dense-to-sparse cells extracted from the Keynotes
       pose/  depth/  scribble/   # <rowkey>_c<col>.webp  (method × frame)
-  videos/                  # drop full-rollout comparison clips here (see below)
 source/                    # NON-deployed: original 55 MB PDF, extraction scripts,
                            # unzipped cells. Git-ignored — keep out of the repo.
 ```
@@ -26,9 +25,8 @@ source/                    # NON-deployed: original 55 MB PDF, extraction script
 | Hero, abstract, key idea, quantitative tables | ✅ Final (numbers from Table 1 of the paper) |
 | Teaser (Fig. 1) | ✅ Hand-built HTML/SVG diagram (no image) — edit in `index.html` teaser section |
 | Dense-to-sparse grids (pose / depth / scribble) | ✅ Real frames, reconstructed cell-by-cell from the Keynote source |
-| Fig. 2a + Fig. 4 (VKD) | ✅ Merged into a **tabbed** figure ("Rendering" = `dopsd_vis`, "Concept identity" = `dopsd_vis_style`). CFG g1/g1p5/g2p5 → 1/2/3 (+ Target); Ours=wbranch/decouple. Rows: `FIGS.*.samples` in `js/main.js`. Tab labels: the `<button data-target>` text in `index.html` |
-| Fig. 2b (video NBA) | ✅ Real pose grid — GT (skeleton) + PDM/Naive at γ=1, γ=3 **and γ=5** (γ=5 = `union_4kf`/`naive_4kf`) over 4 keyframes. Shown clips: `NBA_POSE.clips` in `js/main.js` (all 5 on disk: 0014, 0028, 0216, 0571, 0591) |
-| Full-rollout comparison videos | ⬜ Placeholder slots, auto-detected once you add the files |
+| VKD (Concept identity + Rendering style) | ✅ **Tabbed carousels**, one case at a time. Columns are the real CFG scales g1/g1p5/g2 → **1 / 1.5 / 2** (+ Target); cells `s<NN>_<ours|naive>_<cfg1\|cfg1p5\|cfg2>.webp`. Cases: `FIGS.*.samples` in `js/main.js`. Tab labels: `<button data-target>` text in `index.html` |
+| Pose NBA (video) | ✅ Carousel of clips — GT (skeleton) + PDM/Naive at γ=1, 3, 5 over 4 keyframes. Shown clips: `NBA_POSE.clips` in `js/main.js` (all 5 on disk: 0014, 0028, 0216, 0571, 0591) |
 
 Header buttons are **arXiv · Code · Hugging Face · BibTeX** (all `disabled`/placeholder except BibTeX);
 add real URLs in `index.html` and remove the `disabled` class + `(soon)` tag.
@@ -40,17 +38,10 @@ add real URLs in `index.html` and remove the `disabled` class + `(soon)` tag.
 (edit text/vectors there). If you'd rather use your `assets/ori_figures/teaser.pdf` export instead,
 replace that whole `<div class="teaser">…</div>` with `<img src="assets/figures/teaser.webp">`.
 
-**Fig. 2 / Fig. 4 grids** — the layout (rows, columns, labels) is defined in
-`js/main.js` under `PLACEHOLDERS`. Drop your exported cell images into
-`assets/figures/…` and swap each placeholder `<div class="cell">+</div>` for an
-`<img>`, or just replace the whole `#ph-…` block with a single exported figure image.
+**Result grids** — all real. Each grid is data-driven from `js/main.js`
+(`D2S`, `FIGS`, `NBA_POSE`): edit the `samples` / `clips` arrays to add or drop
+cases, or the `cols` / `rows` to change labels. Cell images live under `assets/figures/`.
 
-**Videos** — add clips to `assets/videos/` (see `assets/videos/README.md`):
-```
-pose_comparison.mp4    depth_comparison.mp4    scribble_comparison.mp4
-```
-The page sends a `HEAD` request per slot and automatically swaps the placeholder
-for a real `<video>` player when the file exists (prefers a `.webm` sibling if present).
 
 ## Deploy to GitHub Pages
 
