@@ -89,15 +89,16 @@ function buildD2SGrid(mod) {
 
 /* ---- Real image grids: VKD (Fig 2a) & concept identity (Fig 4) -------------
    Columns g1/g1p5/g2p5 -> CFG 1/2/3 (+ Target). Cell path:
-   assets/figures/<fig>/s<NN>_<ours|naive>_<cfg1|cfg2|cfg3>.webp, s<NN>_target.webp */
+   assets/figures/<fig>/s<NN>_<ours|naive>_<cfg1|cfg1p5|cfg2>.webp, s<NN>_target.webp
+   (columns are the real guidance scales: g1=1, g1p5=1.5, g2=2) */
 const FIGS = {
   vkd: {
-    cols: ["CFG = 1", "CFG = 2", "CFG = 3", "Target"],
+    cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "Target"],
     dir: "assets/figures/vkd",
     samples: [0, 1, 3, 6, 7, 9, 10, 14, 20],
   },
   identity: {
-    cols: ["CFG = 1", "CFG = 2", "CFG = 3", "Target"],
+    cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "Target"],
     dir: "assets/figures/identity",
     samples: [0, 1, 2, 3],
   },
@@ -121,7 +122,7 @@ function carouselWrap(slidesHtml, n) {
 
 /* one sample's grid: PDM (ours) + Naive rows, CFG columns + shared Target */
 function figSlide(cfg, id, s) {
-  const cols = ["cfg1", "cfg2", "cfg3"];
+  const cols = ["cfg1", "cfg1p5", "cfg2"];
   let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
   cfg.cols.forEach((c) => (h += `<th class="colhead">${c}</th>`));
   h += "</tr></thead><tbody>";
