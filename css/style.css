@@ -179,7 +179,7 @@ h3.subsec .idx {
 .tp-badge.ok   { color: #0f7a53; }
 .tp-badge .ic { flex: 0 0 auto; font-size: 15px; line-height: 1.4; }
 
-.ta-head { font-weight: 650; font-size: 16px; margin: 0 0 4px; }
+.ta-head { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 0 0 4px; }
 .ta-sub { color: var(--ink-soft); font-size: 13px; margin: 0 0 14px; line-height: 1.5; }
 .nba-flex { display: flex; gap: 14px; align-items: center; margin: 8px 0 auto; }
 .nba-flex > svg { flex: 0 0 148px; width: 148px; height: auto; }
