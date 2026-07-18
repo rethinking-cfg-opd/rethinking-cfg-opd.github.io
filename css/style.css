@@ -394,6 +394,73 @@ table.qtable tr.grp td, table.qtable tr.grp th { border-top: 2px solid var(--lin
 /* keep the tag label sans, not stretched by KaTeX */
 .eq .tag { font-family: var(--font); }
 
+/* ============================================================
+   Fancy polish: motion, depth, gradients
+   ============================================================ */
+
+/* scroll progress bar */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 200;
+  background: linear-gradient(90deg, var(--accent), #7048e8 70%, #b06ab3);
+  border-radius: 0 3px 3px 0; transition: width .08s linear;
+  box-shadow: 0 0 10px rgba(63,94,251,.4);
+}
+
+/* animated hero aurora */
+header.hero { position: relative; overflow: hidden; }
+header.hero::before, header.hero::after {
+  content: ""; position: absolute; z-index: 0; border-radius: 50%;
+  filter: blur(72px); opacity: .55; pointer-events: none;
+}
+header.hero::before {
+  width: 540px; height: 540px; top: -240px; left: -120px;
+  background: radial-gradient(circle, #c6d2ff, transparent 70%);
+  animation: drift1 17s ease-in-out infinite alternate;
+}
+header.hero::after {
+  width: 480px; height: 480px; top: -200px; right: -110px;
+  background: radial-gradient(circle, #e6d8ff, transparent 70%);
+  animation: drift2 21s ease-in-out infinite alternate;
+}
+header.hero .wrap { position: relative; z-index: 1; }
+@keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(70px,46px) scale(1.18); } }
+@keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-56px,54px) scale(1.12); } }
+
+/* gradient title accent */
+h1.title .hl {
+  background: linear-gradient(115deg, var(--accent-dark) 10%, #7048e8 60%, #b06ab3);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* staggered hero load-in */
+header.hero .wrap > * { animation: heroIn .7s cubic-bezier(.2,.7,.2,1) both; }
+header.hero .venue   { animation-delay: .02s; }
+header.hero .title   { animation-delay: .09s; }
+header.hero .authors { animation-delay: .17s; }
+header.hero .affil   { animation-delay: .23s; }
+header.hero .contact { animation-delay: .28s; }
+header.hero .links   { animation-delay: .34s; }
+@keyframes heroIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: none; } }
+
+/* scroll-reveal sections (progressive enhancement: only hides once JS marks <html>) */
+.has-reveal section {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+}
+.has-reveal section.in { opacity: 1; transform: none; }
+
+/* depth on hover for cards */
+.contrib, .setting, .card, .callout { transition: transform .18s ease, box-shadow .18s ease; }
+.contrib:hover, .setting:hover, .card:hover { transform: translateY(-3px); box-shadow: 0 12px 34px rgba(20,25,45,.11); }
+.btn { transition: transform .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .has-reveal section { opacity: 1 !important; transform: none !important; }
+  header.hero::before, header.hero::after { animation: none; }
+  header.hero .wrap > * { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
 /* ---------- Footer ---------- */
 footer { padding: 40px 0 56px; text-align: center; color: var(--ink-faint); font-size: 14px; }
 footer a { color: var(--ink-soft); }

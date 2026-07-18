@@ -243,6 +243,40 @@ function initCopy() {
   });
 }
 
+/* ---- Scroll progress bar -------------------------------------------------- */
+function initProgress() {
+  const bar = document.createElement("div");
+  bar.className = "progress-bar";
+  document.body.appendChild(bar);
+  const update = () => {
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - window.innerHeight;
+    bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + "%";
+  };
+  window.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update, { passive: true });
+  update();
+}
+
+/* ---- Scroll-reveal sections (progressive enhancement) --------------------- */
+function initReveal() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!("IntersectionObserver" in window)) return;
+  document.documentElement.classList.add("has-reveal");
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.08, rootMargin: "0px 0px -8% 0px" }
+  );
+  document.querySelectorAll("section").forEach((s) => io.observe(s));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   Object.keys(D2S).forEach((mod) => {
     const el = document.getElementById(`grid-${mod}`);
@@ -269,4 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initLightbox();
   initCopy();
+  initProgress();
+  initReveal();
 });
