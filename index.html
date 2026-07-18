@@ -509,7 +509,7 @@
   <div class="wrap-wide">
     <p class="eyebrow">The NBA prediction, tested</p>
     <h2 class="sec">Robustness across guidance scales</h2>
-    <div class="res-intro"><p>NBA predicts that matching only the composed prediction fails to identify the branches — so a naive student should break when the guidance composition changes. Trained once at γ<sub>train</sub> = 5 (pose-only) and evaluated at γ = 1, 3, 5, that is exactly what happens: <b>naive collapses at γ = 1</b> (FID 14 → 78, FVD 67 → 508), while PDM and IBM stay flat.</p></div>
+    <div class="res-intro"><p>NBA predicts that matching only the composed prediction fails to identify the branches — so a naive student should break when the guidance composition changes. Trained once at γ<sub>train</sub> = 5 (pose-only) and evaluated at γ = 1, 3, 5, that is exactly what happens: <b>naive collapses at γ = 1</b> (FID 14 → 78, FVD 67 → 508), while PDM stays flat.</p></div>
 
     <h3 class="subsec">Pose-controlled video across guidance scales</h3>
     <p class="subsec-note">Ground-truth pose control on top; PDM and Naive at γ = 1, 3, 5 over four keyframes. Naive degrades sharply at γ = 1 while PDM stays faithful across scales.</p>
