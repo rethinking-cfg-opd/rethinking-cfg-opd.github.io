@@ -243,19 +243,56 @@ function initCopy() {
   });
 }
 
-/* ---- Scroll progress bar -------------------------------------------------- */
+/* ---- Scroll progress bar (rAF-throttled) ---------------------------------- */
 function initProgress() {
   const bar = document.createElement("div");
   bar.className = "progress-bar";
   document.body.appendChild(bar);
+  let ticking = false;
   const update = () => {
     const doc = document.documentElement;
     const max = doc.scrollHeight - window.innerHeight;
     bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + "%";
+    ticking = false;
   };
-  window.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update, { passive: true });
+  const onScroll = () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
   update();
+}
+
+/* ---- Floating dot navigation ---------------------------------------------- */
+function initDotNav() {
+  const secs = [...document.querySelectorAll("section")].filter((s) => s.querySelector("h2.sec"));
+  if (secs.length < 3 || !("IntersectionObserver" in window)) return;
+  const nav = document.createElement("nav");
+  nav.className = "dotnav";
+  nav.setAttribute("aria-label", "Section navigation");
+  secs.forEach((s, i) => {
+    if (!s.id) s.id = "sec-" + i;
+    const label = s.querySelector("h2.sec").textContent.trim();
+    const a = document.createElement("a");
+    a.className = "dot";
+    a.href = "#" + s.id;
+    a.setAttribute("aria-label", label);
+    a.innerHTML = `<span class="dot-label">${label}</span>`;
+    nav.appendChild(a);
+  });
+  document.body.appendChild(nav);
+  const dots = [...nav.querySelectorAll(".dot")];
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const href = "#" + e.target.id;
+        dots.forEach((d) => d.classList.toggle("active", d.getAttribute("href") === href));
+      });
+    },
+    { rootMargin: "-45% 0px -45% 0px", threshold: 0 }
+  );
+  secs.forEach((s) => io.observe(s));
 }
 
 /* ---- Scroll-reveal sections (progressive enhancement) --------------------- */
@@ -305,4 +342,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initCopy();
   initProgress();
   initReveal();
+  initDotNav();
 });

@@ -454,10 +454,60 @@ header.hero .links   { animation-delay: .34s; }
 .contrib:hover, .setting:hover, .card:hover { transform: translateY(-3px); box-shadow: 0 12px 34px rgba(20,25,45,.11); }
 .btn { transition: transform .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease; }
 
+/* perf: promote aurora to its own compositor layer (blur rendered once) */
+header.hero::before, header.hero::after { will-change: transform; }
+
+/* section-title accent underline (grows in on reveal) */
+h2.sec { position: relative; }
+h2.sec::after {
+  content: ""; display: block; width: 52px; height: 3px; margin: 12px auto 0;
+  border-radius: 2px; background: linear-gradient(90deg, var(--accent), #7048e8);
+}
+.has-reveal section h2.sec::after { width: 0; transition: width .6s ease .15s; }
+.has-reveal section.in h2.sec::after { width: 52px; }
+
+/* gentle hover zoom on grid images (cell clips the overflow) */
+table.dgrid td .cell img { transition: transform .35s ease; }
+table.dgrid td .cell:hover img { transform: scale(1.045); }
+
+/* shimmer sweep on the OURS pill */
+.ours-pill { position: relative; overflow: hidden; }
+.ours-pill::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%);
+  transform: translateX(-130%); animation: shine 3.4s ease-in-out infinite;
+}
+@keyframes shine { 0%, 55% { transform: translateX(-130%); } 78%, 100% { transform: translateX(130%); } }
+
+/* sheen sweep on buttons (on hover) */
+.btn { position: relative; overflow: hidden; }
+.btn::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+  transform: translateX(-130%); transition: transform .6s ease;
+}
+.btn:hover::after { transform: translateX(130%); }
+
+/* floating dot navigation */
+.dotnav { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 150;
+  display: flex; flex-direction: column; gap: 11px; }
+.dotnav .dot { position: relative; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--line); cursor: pointer; transition: transform .2s ease, background .2s ease; }
+.dotnav .dot:hover, .dotnav .dot.active { background: var(--accent); transform: scale(1.4); }
+.dotnav .dot.active { box-shadow: 0 0 0 4px var(--accent-soft); }
+.dotnav .dot-label { position: absolute; right: 20px; top: 50%;
+  transform: translateY(-50%) translateX(6px); opacity: 0; pointer-events: none; white-space: nowrap;
+  background: var(--ink); color: #fff; font-size: 12px; padding: 4px 9px; border-radius: 7px;
+  box-shadow: var(--shadow); transition: opacity .18s ease, transform .18s ease; }
+.dotnav .dot:hover .dot-label { opacity: 1; transform: translateY(-50%) translateX(0); }
+@media (max-width: 1180px) { .dotnav { display: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .has-reveal section { opacity: 1 !important; transform: none !important; }
   header.hero::before, header.hero::after { animation: none; }
   header.hero .wrap > * { animation: none; }
+  .ours-pill::after { display: none; }
+  table.dgrid td .cell:hover img { transform: none; }
   html { scroll-behavior: auto; }
 }
 
