@@ -371,9 +371,21 @@ table.qtable tr.grp td, table.qtable tr.grp th { border-top: 2px solid var(--lin
 .setting h4 { margin: 0 0 4px; font-size: 16.5px; }
 .setting .who { font-size: 13px; color: var(--ink-faint); margin: 0 0 12px; }
 .setting p { color: var(--ink-soft); font-size: 14px; margin: 0 0 12px; }
-.setting .condeq { font-size: 13px; background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; color: var(--ink); }
-.setting .condeq .katex-display { text-align: left; margin: 0; }
-.setting .condeq .hl { color: var(--warn); font-weight: 700; }
+.condeq { font-size: 13px; background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; color: var(--ink); }
+.condeq .katex-display { text-align: left; margin: 0; }
+.condeq .hl { color: var(--warn); font-weight: 700; }
+.condeq-center { max-width: 620px; margin: 0 auto; background: var(--bg-card); }
+.condeq-center .katex-display { text-align: center; }
+
+/* verdict chip inside setting-card titles */
+.setting-verdict {
+  display: inline-block; vertical-align: 2px; margin-left: 8px;
+  font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+}
+.setting-verdict.good { color: var(--ours); background: var(--ours-soft); }
+.setting-verdict.bad  { color: var(--warn); background: #fbe1e6; }
+.clab-rms { font-weight: 500; color: var(--ink-faint); font-size: 12px; }
 
 /* ---------- Interactive branch-error curves ---------- */
 .curvelab {

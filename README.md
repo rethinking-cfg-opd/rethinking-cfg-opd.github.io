@@ -15,10 +15,10 @@ assets/
     teaser.webp            # Fig. 1 teaser  (og:image only; live teaser is HTML/SVG)
     d2s/                   # dense-to-sparse cells extracted from the Keynotes
       pose/  depth/  scribble/   # <rowkey>_c<col>.webp  (method × frame)
-    vkd/  identity/        # VKD carousels (ours/naive × CFG + target)
     nba_pose/              # pose robustness carousels (PDM/naive × γ × keyframe)
-    refcond/               # reference-conditioned knowledge transfer
+    refcond/               # reference-conditioned distillation (paper Fig. 3/5)
                            #   s<N>_<base|pdm|teacher>_cfg<1|1p5|2|2p5>.webp + s<N>_ref.webp
+                           #   NOTE: "base" = the NAIVE-matching student
   curve_value/             # NON-deployed raw curve values (git-ignored)
   ori_figures/             # NON-deployed raw figure exports (git-ignored)
 source/                    # NON-deployed: original PDFs, extraction/build scripts.
@@ -29,13 +29,12 @@ source/                    # NON-deployed: original PDFs, extraction/build scrip
 
 | Section | State |
 |---|---|
-| Hero, abstract, key idea, quantitative tables | ✅ Final (numbers from Table 1 of the paper) |
+| Hero, abstract, key idea, quantitative tables | ✅ Final (numbers from Tables 1–5 of the paper) |
 | Teaser (Fig. 1) | ✅ Hand-built HTML/SVG diagram (no image) — edit in `index.html` teaser section |
-| Dense-to-sparse grids (pose / depth / scribble) | ✅ Real frames, reconstructed cell-by-cell from the Keynote source |
-| VKD (Concept identity + Rendering style) | ✅ **Tabbed carousels**, one case at a time. Columns are the real CFG scales g1/g1p5/g2 → **1 / 1.5 / 2** (+ Target); cells `s<NN>_<ours|naive>_<cfg1\|cfg1p5\|cfg2>.webp`. Cases: `FIGS.*.samples` in `js/main.js`. Tab labels: `<button data-target>` text in `index.html` |
-| Pose NBA (video) | ✅ Carousel of clips — GT (skeleton) + PDM/Naive at γ=1, 3, 5 over 4 keyframes. Shown clips: `NBA_POSE.clips` in `js/main.js` (all 5 on disk: 0014, 0028, 0216, 0571, 0591) |
-| Reference-conditioned knowledge transfer | ✅ Carousel (`REFCOND` in `js/main.js`): base student / PDM student / teacher × CFG 1–2.5 + reference. Regenerate cells with `python3 source/build_refcond.py` |
-| Interactive branch-error curves | ✅ wandb-style hover chart (`initCurveLab` in `js/main.js`), data in `js/curves-data.js`. Regenerate from `assets/curve_value/` with `python3 source/build_curves.py` |
+| Branch-error curves (paper Fig. 2) | ✅ Interactive wandb-style hover chart (`initCurveLab` in `js/main.js`), data in `js/curves-data.js`. Regenerate from `assets/curve_value/` with `python3 source/build_curves.py` |
+| Reference-conditioned distillation (paper Fig. 3/5) | ✅ Carousel (`REFCOND` in `js/main.js`): Naive / PDM / teacher × CFG 1–2.5 + reference. Regenerate cells with `python3 source/build_refcond.py` |
+| Dense-to-sparse grids (pose / depth / scribble, Fig. 7–9) | ✅ Real frames, reconstructed cell-by-cell from the Keynote source |
+| Pose NBA across scales (paper Fig. 4) | ✅ Carousel of clips — GT (skeleton) + PDM/Naive at γ=1, 3, 5 over 4 keyframes. Shown clips: `NBA_POSE.clips` in `js/main.js` (all 5 on disk: 0014, 0028, 0216, 0571, 0591) |
 
 Header buttons are **arXiv · Code · Hugging Face · BibTeX** (all `disabled`/placeholder except BibTeX);
 add real URLs in `index.html` and remove the `disabled` class + `(soon)` tag.

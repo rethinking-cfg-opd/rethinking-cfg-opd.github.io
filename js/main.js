@@ -77,24 +77,6 @@ function buildD2SGrid(mod) {
   return html;
 }
 
-/* ---- Real image grids: VKD (Fig 2a) & concept identity (Fig 4) -------------
-   Columns g1/g1p5/g2p5 -> CFG 1/2/3 (+ Target). Cell path:
-   assets/figures/<fig>/s<NN>_<ours|naive>_<cfg1|cfg1p5|cfg2>.webp, s<NN>_target.webp
-   (columns are the real guidance scales: g1=1, g1p5=1.5, g2=2) */
-const FIGS = {
-  vkd: {
-    cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "Target"],
-    dir: "assets/figures/vkd",
-    samples: [0, 1, 3, 6, 7, 9, 10, 14, 20],
-  },
-  identity: {
-    cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "Target"],
-    dir: "assets/figures/identity",
-    samples: [0, 1, 2, 3],
-  },
-};
-
-const pad2 = (n) => String(n).padStart(2, "0");
 const cell = (src, alt) =>
   `<td><div class="cell"><img loading="lazy" decoding="async" src="${src}" alt="${alt}"></div></td>`;
 
@@ -110,38 +92,18 @@ function carouselWrap(slidesHtml, n) {
   </div>`;
 }
 
-/* one sample's grid: PDM (ours) + Naive rows, CFG columns + shared Target */
-function figSlide(cfg, id, s) {
-  const cols = ["cfg1", "cfg1p5", "cfg2"];
-  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
-  cfg.cols.forEach((c) => (h += `<th class="colhead">${c}</th>`));
-  h += "</tr></thead><tbody>";
-  h += `<tr class="ours"><th class="rowhead"><span class="rowlabel-strong">PDM<span class="ours-pill">OURS</span></span></th>`;
-  cols.forEach((c) => (h += cell(`${cfg.dir}/s${s}_ours_${c}.webp`, `${id} PDM ${c}`)));
-  h += `<td rowspan="2"><div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/s${s}_target.webp" alt="target"></div></td></tr>`;
-  h += `<tr><th class="rowhead">Naive</th>`;
-  cols.forEach((c) => (h += cell(`${cfg.dir}/s${s}_naive_${c}.webp`, `${id} naive ${c}`)));
-  h += "</tr></tbody></table></div>";
-  return h;
-}
-
-function buildFigGrid(id) {
-  const cfg = FIGS[id];
-  const slides = cfg.samples.map((sn) => `<div class="cslide">${figSlide(cfg, id, pad2(sn))}</div>`).join("");
-  return carouselWrap(slides, cfg.samples.length);
-}
-
-/* ---- Reference-conditioned knowledge transfer ------------------------------
-   Rows: base student (no distillation) / PDM student / teacher (sees ref).
+/* ---- Reference-conditioned distillation (paper Fig. 3 / Fig. 5) ------------
+   Rows: naive student / PDM student / teacher (sees ref), across CFG scales.
    Cell path: assets/figures/refcond/s<N>_<method>_cfg<1|1p5|2|2p5>.webp
-   plus s<N>_ref.webp (the reference image, shared column). */
+   plus s<N>_ref.webp (the reference exemplar, shared column).
+   NOTE: the raw "base" directory holds the NAIVE-matching student. */
 const REFCOND = {
   cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "CFG = 2.5", "Reference"],
   cfgs: ["cfg1", "cfg1p5", "cfg2", "cfg2p5"],
   dir: "assets/figures/refcond",
   samples: [0, 2, 8, 9],
   rows: [
-    { key: "base",    label: "Base student (no distill)" },
+    { key: "base",    label: "Naive student" },
     { key: "pdm",     label: "PDM student", ours: true },
     { key: "teacher", label: "Teacher (sees reference)" },
   ],
@@ -295,29 +257,30 @@ function initCurveLab() {
 
   const SERIES = [
     { key: "naive",         label: "Naive OPD",             color: "#d1495b" },
-    { key: "positive_only", label: "Positive-only (λ = 0)", color: "#e8930c" },
+    { key: "positive_only", label: "Positive-only (ℓ₊)", color: "#e8930c" },
     { key: "pdm",           label: "PDM (Ours)",            color: "#14a06e" },
   ];
   const SETTINGS = [
     {
-      key: "reference_conditioned", label: "Reference-conditioned",
-      note: "Reference-conditioned visual knowledge distillation: naive matching lets the negative-branch error ‖e⁻‖ drift upward as training proceeds, and positive-only matching (λ = 0) leaves it entirely unconstrained. Only PDM pulls both branch errors down together — the branch-level cancellation NBA predicts, watched live.",
+      key: "text_rendering", label: "Text rendering · shared negatives",
+      note: "The benign regime: with shared negative conditioning, every objective reduces both branch errors jointly — positive-branch updates also improve the negative branch, and naive composed matching remains effective.",
     },
     {
-      key: "text_rendering", label: "Text rendering",
-      note: "Text rendering: with teacher and student aligned on the negative branch, all three objectives drive both branch errors down together — composed matching is benign in this regime, exactly as the analysis predicts.",
+      key: "reference_conditioned", label: "Reference-conditioned · privileged negatives", default: true,
+      note: "The NBA regime: positive-only training reduces the positive error but substantially increases the negative error — positive-branch updates no longer help the negative branch. Naive matching follows the same antagonistic pattern. PDM reduces the positive error while preventing sustained negative-error growth: the optimization signature of NBA.",
     },
   ];
 
   const W = 560, H = 300, ML = 56, MR = 12, MT = 12, MB = 30;
   const IW = W - ML - MR, IH = H - MT - MB;
-  const state = { setting: SETTINGS[0].key, on: { naive: true, positive_only: true, pdm: true }, log: false };
+  const defaultSetting = SETTINGS.find((s) => s.default) || SETTINGS[0];
+  const state = { setting: defaultSetting.key, on: { naive: true, positive_only: true, pdm: true }, log: false };
 
   /* controls */
   const tabsEl = document.getElementById("clab-settings");
-  SETTINGS.forEach((s, i) => {
+  SETTINGS.forEach((s) => {
     const b = document.createElement("button");
-    b.className = "tab" + (i === 0 ? " active" : "");
+    b.className = "tab" + (s === defaultSetting ? " active" : "");
     b.type = "button";
     b.textContent = s.label;
     b.addEventListener("click", () => {
@@ -574,10 +537,6 @@ document.addEventListener("DOMContentLoaded", () => {
   Object.keys(D2S).forEach((mod) => {
     const el = document.getElementById(`grid-${mod}`);
     if (el) el.innerHTML = buildD2SGrid(mod);
-  });
-  Object.keys(FIGS).forEach((id) => {
-    const el = document.getElementById(`fig-${id}`);
-    if (el) el.innerHTML = buildFigGrid(id);
   });
   const nbaEl = document.getElementById("fig-nba_pose");
   if (nbaEl) nbaEl.innerHTML = buildNbaPoseGrid();
