@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="css/style.css?v=22">
+<link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
 
@@ -302,8 +302,11 @@
     </div>
     <div class="eq warn"><div class="body">\[ \gamma\, e^{+} + (1-\gamma)\, e^{-} = 0 \quad\Longleftrightarrow\quad e^{+} = \frac{\gamma-1}{\gamma}\, e^{-} \]</div><div class="tag">Eq. 6–7</div></div>
     <div class="eqnote">— an entire line of non-zero \((e^{+}, e^{-})\) pairs: the two errors can compensate without changing the guided prediction.</div>
-    <div class="callout bad"><h4>Antagonistic branch-error dynamics</h4><p>Privileged negative conditioning breaks joint error reduction: the composed objective now <b>improves the positive branch at the expense of the negative branch</b>. We call this failure mode <span class="term-bad">Negative Branch Asymmetry (NBA)</span>. It hides at the training scale, where the opposing errors compensate — and surfaces the moment the guidance scale changes at inference.</p></div>
-    <div class="callout"><h4>What counts as evidence</h4><p>An absolute performance drop away from γ<sub>train</sub> is <b>not</b> by itself evidence of NBA — the teacher may intrinsically rely on CFG. The relevant signature is <b>excess degradation introduced by naive distillation</b>: the student departing from the teacher's guidance-scale behavior, or degrading more than its branch-aware counterpart.</p></div>
+    <aside class="paperbox def">
+      <span class="pb-label"><svg viewBox="0 0 24 24"><path d="M12 2 2 7v10l10 5 10-5V7L12 2zm0 2.3L19.5 8 12 11.7 4.5 8 12 4.3zM4 9.5l7 3.5v7l-7-3.5v-7zm16 0v7l-7 3.5v-7l7-3.5z"/></svg> Definition</span>
+      <h3 class="pb-title">Negative Branch Asymmetry</h3>
+      <p>Branch ambiguity alone does <b>not</b> constitute NBA. We define NBA as the failure mode in which privileged information in the teacher's negative branch <b>breaks joint error reduction</b>, and naive CFG-composed matching induces <b>antagonistic branch-error dynamics</b> — reducing \(\lVert e_{+}\rVert_{2}\) while <i>increasing</i> \(\lVert e_{-}\rVert_{2}\). The opposing errors can stay hidden at the training guidance scale, and become exposed when the branches are recomposed at another scale.</p>
+    </aside>
   </div>
 </section>
 
@@ -429,6 +432,13 @@
       γ = 1. That <b>excess</b> degradation is exactly the distillation-induced sensitivity NBA predicts.</p>
     <div id="fig-refcond"></div>
     <div class="legend"><span><span class="sw ours"></span> PDM (Ours) rows are highlighted; the left column shows the reference-style exemplars, seen only by the teacher.</span></div>
+
+    <aside class="paperbox finding">
+      <span class="pb-label"><svg viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19a7 7 0 0 0-4 12.7c.6.5 1 1.1 1 1.8v.5h6v-.5c0-.7.4-1.3 1-1.8A7 7 0 0 0 12 2zm0 2a5 5 0 0 1 3 9c-.6.5-1 1-1.3 1.6h-3.4C10 14 9.6 13.5 9 13a5 5 0 0 1 3-9z"/></svg> Key finding</span>
+      <h3 class="pb-title">When does branch ambiguity become harmful?</h3>
+      <p>Under <b>shared</b> negative conditioning, both branch errors decrease jointly and the student follows the teacher's intrinsic CFG response. Under <b>privileged</b> negative conditioning, naive matching induces antagonistic branch-error dynamics and excess guidance-scale sensitivity, while PDM suppresses both.</p>
+      <p>Thus <b>excess degradation relative to the teacher or a branch-aware student</b> — rather than an absolute CFG-free performance drop — is the diagnostic signature of NBA.</p>
+    </aside>
   </div>
 </section>
 
