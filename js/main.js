@@ -109,27 +109,24 @@ const REFCOND = {
     { s: 2, refs: [1, 3, 5] },  // billiards player (illustration style)
   ],
   rows: [
-    { key: "base",    label: "Naive student" },
-    { key: "pdm",     label: "PDM student", ours: true },
-    { key: "teacher", label: "Teacher (sees refs)" },
+    { key: "base",    label: "Naive" },
+    { key: "pdm",     label: "PDM", ours: true },
+    { key: "teacher", label: "Teacher" },
   ],
 };
 
 function refcondSlide(sample) {
   const cfg = REFCOND;
-  /* paper layout: Ref-style exemplars are the LEFTMOST column; the
-     Naive/PDM/Teacher labels sit between the refs and the CFG outputs */
-  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="colhead kf">Ref style</th><th class="rowhead"></th>';
+  /* paper layout: Ref-style exemplars are the LEFTMOST column, one per row;
+     the Naive/PDM/Teacher labels sit between the refs and the CFG outputs.
+     Each ref fills its row height (= generated cell height) via object-fit. */
+  let h = '<div class="grid-scroll"><table class="dgrid figgrid figgrid-ref"><thead><tr><th class="colhead kf">Ref style</th><th class="rowhead"></th>';
   cfg.cols.forEach((c) => (h += `<th class="colhead">${c}</th>`));
   h += "</tr></thead><tbody>";
   cfg.rows.forEach((r, ri) => {
     h += `<tr class="${r.ours ? "ours" : ""}">`;
-    if (ri === 0) {
-      const stack = sample.refs
-        .map((n) => `<div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/ref${n}.webp" alt="reference-style exemplar"></div>`)
-        .join("");
-      h += `<td rowspan="${cfg.rows.length}" class="refstack-td"><div class="refstack">${stack}</div></td>`;
-    }
+    const refN = sample.refs[ri];
+    h += `<td class="refcell"><div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/ref${refN}.webp" alt="reference-style exemplar"></div></td>`;
     const lbl = r.ours
       ? `<span class="rowlabel-strong">${r.label}<span class="ours-pill">OURS</span></span>`
       : r.label;
