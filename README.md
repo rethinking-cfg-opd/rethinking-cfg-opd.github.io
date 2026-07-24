@@ -17,7 +17,8 @@ assets/
       pose/  depth/  scribble/   # <rowkey>_c<col>.webp  (method × frame)
     nba_pose/              # pose robustness carousels (PDM/naive × γ × keyframe)
     refcond/               # reference-conditioned distillation (paper Fig. 3/5)
-                           #   s<N>_<base|pdm|teacher>_cfg<1|1p5|2|2p5>.webp + s<N>_ref.webp
+                           #   s<N>_<base|pdm|teacher>_cfg<1|1p5|2|2p5>.webp
+                           #   + ref<N>.webp reference-style exemplars (7/10/6 figurine, 1/3/5 illustration)
                            #   NOTE: "base" = the NAIVE-matching student
   curve_value/             # NON-deployed raw curve values (git-ignored)
   ori_figures/             # NON-deployed raw figure exports (git-ignored)

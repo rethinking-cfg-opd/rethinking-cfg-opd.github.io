@@ -236,11 +236,16 @@ table.dgrid td .cell img { width: 100%; height: auto; display: block; cursor: zo
 .rowlabel-strong { display:inline-flex; align-items:center; gap:6px; }
 .ours-pill { font-size: 10px; font-weight: 800; letter-spacing:.04em; color:#fff; background: var(--ours); border-radius: 5px; padding: 1px 5px; }
 
-/* figure grids (VKD / identity): sample groups + non-highlighted target */
+/* figure grids: sample groups + non-highlighted target */
 table.figgrid td[rowspan] { vertical-align: middle; }
 table.figgrid tr.ours td .cell.tgt { border-color: var(--line); box-shadow: none; }
 table.figgrid tr.sample-sep > * { padding-top: 16px; }
 table.figgrid td .cell { max-width: 300px; }
+
+/* reference-style exemplar stack (paper Fig. 3/5 "Ref Style" column) */
+td.refstack-td { width: 16%; }
+.refstack { display: flex; flex-direction: column; gap: 6px; max-width: 190px; margin: 0 auto; }
+.refstack .cell { min-width: 0; }
 
 /* legend */
 .legend { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin: 14px 0 0; font-size:13.5px; color:var(--ink-soft); }

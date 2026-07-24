@@ -93,26 +93,32 @@ function carouselWrap(slidesHtml, n) {
 }
 
 /* ---- Reference-conditioned distillation (paper Fig. 3 / Fig. 5) ------------
-   Rows: naive student / PDM student / teacher (sees ref), across CFG scales.
-   Cell path: assets/figures/refcond/s<N>_<method>_cfg<1|1p5|2|2p5>.webp
-   plus s<N>_ref.webp (the reference exemplar, shared column).
-   NOTE: the raw "base" directory holds the NAIVE-matching student. */
+   Layout mirrors the paper: leftmost column stacks the reference-style
+   exemplars (seen only by the teacher), then Naive / PDM / Teacher rows
+   across CFG scales. Cases ordered figurine (dog, cat) first, as in Fig. 3.
+   Cell path: assets/figures/refcond/s<N>_<method>_cfg<1|1p5|2|2p5>.webp;
+   exemplars: ref<N>.webp. NOTE: raw "base" dir = the NAIVE-matching student. */
 const REFCOND = {
-  cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "CFG = 2.5", "Reference"],
+  cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "CFG = 2.5"],
   cfgs: ["cfg1", "cfg1p5", "cfg2", "cfg2p5"],
   dir: "assets/figures/refcond",
-  samples: [0, 2, 8, 9],
+  samples: [
+    { s: 8, refs: [7, 10, 6] }, // dog figurine
+    { s: 9, refs: [7, 10, 6] }, // cat figurine
+    { s: 0, refs: [1, 3, 5] },  // girl with bicycle (illustration style)
+    { s: 2, refs: [1, 3, 5] },  // billiards player (illustration style)
+  ],
   rows: [
     { key: "base",    label: "Naive student" },
     { key: "pdm",     label: "PDM student", ours: true },
-    { key: "teacher", label: "Teacher (sees reference)" },
+    { key: "teacher", label: "Teacher (sees refs)" },
   ],
 };
 
-function refcondSlide(s) {
+function refcondSlide(sample) {
   const cfg = REFCOND;
-  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
-  cfg.cols.forEach((c) => (h += `<th class="colhead${c === "Reference" ? " kf" : ""}">${c}</th>`));
+  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th><th class="colhead kf">Ref style</th>';
+  cfg.cols.forEach((c) => (h += `<th class="colhead">${c}</th>`));
   h += "</tr></thead><tbody>";
   cfg.rows.forEach((r, ri) => {
     h += `<tr class="${r.ours ? "ours" : ""}">`;
@@ -120,10 +126,13 @@ function refcondSlide(s) {
       ? `<span class="rowlabel-strong">${r.label}<span class="ours-pill">OURS</span></span>`
       : r.label;
     h += `<th class="rowhead">${lbl}</th>`;
-    cfg.cfgs.forEach((c) => (h += cell(`${cfg.dir}/s${s}_${r.key}_${c}.webp`, `${r.label} ${c}`)));
     if (ri === 0) {
-      h += `<td rowspan="${cfg.rows.length}"><div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/s${s}_ref.webp" alt="reference image"></div></td>`;
+      const stack = sample.refs
+        .map((n) => `<div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/ref${n}.webp" alt="reference-style exemplar"></div>`)
+        .join("");
+      h += `<td rowspan="${cfg.rows.length}" class="refstack-td"><div class="refstack">${stack}</div></td>`;
     }
+    cfg.cfgs.forEach((c) => (h += cell(`${cfg.dir}/s${sample.s}_${r.key}_${c}.webp`, `${r.label} ${c}`)));
     h += "</tr>";
   });
   h += "</tbody></table></div>";
@@ -131,7 +140,7 @@ function refcondSlide(s) {
 }
 
 function buildRefcondGrid() {
-  const slides = REFCOND.samples.map((s) => `<div class="cslide">${refcondSlide(s)}</div>`).join("");
+  const slides = REFCOND.samples.map((sm) => `<div class="cslide">${refcondSlide(sm)}</div>`).join("");
   return carouselWrap(slides, REFCOND.samples.length);
 }
 
