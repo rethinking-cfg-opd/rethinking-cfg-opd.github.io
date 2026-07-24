@@ -249,6 +249,8 @@ table.figgrid td .cell { max-width: 300px; }
 table.figgrid-ref td.refcell { width: 12%; position: relative; padding: 3px; }
 table.figgrid-ref td.refcell > .cell { position: absolute; inset: 3px; min-width: 0; }
 table.figgrid-ref td.refcell > .cell img { width: 100%; height: 100%; object-fit: cover; }
+/* stack the OURS pill under the label so it never crowds the ref column */
+table.figgrid-ref tr.ours .rowlabel-strong { flex-direction: column; align-items: flex-end; gap: 3px; }
 
 /* legend */
 .legend { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin: 14px 0 0; font-size:13.5px; color:var(--ink-soft); }
