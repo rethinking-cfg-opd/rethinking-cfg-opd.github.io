@@ -117,21 +117,23 @@ const REFCOND = {
 
 function refcondSlide(sample) {
   const cfg = REFCOND;
-  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th><th class="colhead kf">Ref style</th>';
+  /* paper layout: Ref-style exemplars are the LEFTMOST column; the
+     Naive/PDM/Teacher labels sit between the refs and the CFG outputs */
+  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="colhead kf">Ref style</th><th class="rowhead"></th>';
   cfg.cols.forEach((c) => (h += `<th class="colhead">${c}</th>`));
   h += "</tr></thead><tbody>";
   cfg.rows.forEach((r, ri) => {
     h += `<tr class="${r.ours ? "ours" : ""}">`;
-    const lbl = r.ours
-      ? `<span class="rowlabel-strong">${r.label}<span class="ours-pill">OURS</span></span>`
-      : r.label;
-    h += `<th class="rowhead">${lbl}</th>`;
     if (ri === 0) {
       const stack = sample.refs
         .map((n) => `<div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/ref${n}.webp" alt="reference-style exemplar"></div>`)
         .join("");
       h += `<td rowspan="${cfg.rows.length}" class="refstack-td"><div class="refstack">${stack}</div></td>`;
     }
+    const lbl = r.ours
+      ? `<span class="rowlabel-strong">${r.label}<span class="ours-pill">OURS</span></span>`
+      : r.label;
+    h += `<th class="rowhead">${lbl}</th>`;
     cfg.cfgs.forEach((c) => (h += cell(`${cfg.dir}/s${sample.s}_${r.key}_${c}.webp`, `${r.label} ${c}`)));
     h += "</tr>";
   });
