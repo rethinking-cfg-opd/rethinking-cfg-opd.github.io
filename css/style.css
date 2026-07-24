@@ -368,6 +368,39 @@ table.qtable tr.grp td, table.qtable tr.grp th { border-top: 2px solid var(--lin
 .eq.good { background: var(--ours-soft); border-color: #cdeede; }
 .eqnote { max-width: 780px; margin: -6px auto 0; text-align: center; color: var(--ink-faint); font-size: 13.5px; }
 
+/* prominent paper boxes: Definition / Finding (mirrors the boxed callouts in the paper) */
+.paperbox {
+  max-width: 860px; margin: 32px auto 0; position: relative;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 26px 26px 22px; background: var(--bg-card); box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.paperbox::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+}
+.paperbox .pb-label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 999px; margin-bottom: 12px;
+}
+.paperbox .pb-label svg { width: 14px; height: 14px; fill: currentColor; }
+.paperbox .pb-title { font-family: var(--serif); font-weight: 600; font-size: 21px; margin: 0 0 8px; letter-spacing: -.01em; }
+.paperbox p { margin: 0; color: var(--ink-soft); font-size: 16px; line-height: 1.62; }
+.paperbox p + p { margin-top: 10px; }
+.paperbox b { color: var(--ink); }
+.paperbox .katex { color: var(--ink); }
+/* Definition — the failure mode (warn accent) */
+.paperbox.def { background: linear-gradient(180deg, #fdf5f6 0%, var(--bg-card) 70%); }
+.paperbox.def::before { background: linear-gradient(var(--warn), #b23a4a); }
+.paperbox.def .pb-label { color: var(--warn); background: #fbe1e6; }
+.paperbox.def .pb-title { color: #9c2f3d; }
+/* Finding — the takeaway (accent/violet) */
+.paperbox.finding { background: linear-gradient(180deg, #f4f6ff 0%, var(--bg-card) 70%); }
+.paperbox.finding::before { background: linear-gradient(var(--accent), #7048e8); }
+.paperbox.finding .pb-label { color: var(--accent-dark); background: var(--accent-soft); }
+.paperbox.finding .pb-title { color: var(--accent-dark); }
+@media (max-width: 720px) { .paperbox { padding: 22px 18px 18px; } .paperbox .pb-title { font-size: 19px; } }
+
 /* callout box */
 .callout { max-width: 820px; margin: 22px auto 0; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius-sm); padding: 16px 20px; background: var(--bg-card); box-shadow: var(--shadow); }
 .callout.bad { border-left-color: var(--warn); }
