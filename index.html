@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 
@@ -241,9 +241,10 @@
         discrepancies, allowing branch-level errors to cancel while producing identical guided supervision signals.
         We term this phenomenon <b>Negative Branch Asymmetry (NBA)</b>. To address it, we introduce
         <b>Positive–Direction Matching (PDM)</b>, a branch-aware OPD objective that separately constrains the positive
-        prediction and the CFG conditional direction. Experiments on FLUX-based visual knowledge distillation and
-        dense-to-sparse video control demonstrate that naive guided matching suffers from CFG-scale sensitivity under
-        NBA, while branch-aware objectives enable more robust and effective knowledge transfer.
+        prediction and the CFG conditional direction. On dense-to-sparse video control, naive guided matching suffers
+        from CFG-scale sensitivity under NBA while branch-aware supervision enables more robust and effective knowledge
+        transfer; a FLUX-based reference-conditioned visual-knowledge case study illustrates the same failure
+        qualitatively.
       </p>
     </div>
   </div>
@@ -261,7 +262,7 @@
       </div>
       <div class="contrib"><span class="num">2</span>
         <h4>Negative Branch Asymmetry</h4>
-        <p>When conditioning, capacity, or architecture make the negative branches differ, CFG composition lets positive- and negative-branch errors <b>cancel</b>, creating infinitely many degenerate solutions. We formalize this as <span class="term-bad">NBA</span>.</p>
+        <p>When privileged teacher conditioning makes the negative branches differ, CFG composition lets positive- and negative-branch errors <b>cancel</b>, creating infinitely many degenerate solutions. We formalize this as <span class="term-bad">NBA</span>.</p>
       </div>
       <div class="contrib"><span class="num">3</span>
         <h4>Branch-aware objectives</h4>
@@ -296,7 +297,7 @@
     <p class="eyebrow">The problem</p>
     <h2 class="sec">Negative Branch Asymmetry</h2>
     <div class="prose">
-      <p class="lead">In general OPD, teacher and student can differ in <b>architecture, capacity, or conditioning</b> — e.g. a teacher with privileged dense control distilled into a student that sees only sparse input. Then \(e^{-}\) is no longer negligible.</p>
+      <p class="lead">In general OPD, the teacher often holds <b>privileged conditioning</b> the student lacks — a reference image, or dense control distilled into a sparse-control student — and that condition shapes the teacher's <b>negative</b> branch too. Then \(e^{-}\) is no longer negligible.</p>
       <p>With a non-trivial negative branch, driving the naive loss to zero no longer forces the branches to match. It only requires a single linear relation:</p>
     </div>
     <div class="eq warn"><div class="body">\[ e^{+} = \frac{\gamma-1}{\gamma}\, e^{-} \]</div><div class="tag">Eq. 6</div></div>
@@ -331,8 +332,8 @@
     <div class="settings">
       <div class="setting">
         <h4>Visual knowledge distillation</h4>
-        <p class="who">FLUX · reference-conditioned teacher → text-only student</p>
-        <p>The teacher sees a reference image <b>r</b> carrying a rendering style or a concept's identity; the student sees only the text prompt. The reference stays available even in the teacher's negative branch.</p>
+        <p class="who">FLUX.2-klein · reference-conditioned teacher → text-only student · γ<sub>train</sub> = 2</p>
+        <p>The teacher sees a reference image <b>r</b> carrying visual knowledge — a rendering style or a concept's exact look — that the text prompt alone cannot pin down; the student sees only the prompt. The reference stays available even in the teacher's negative branch.</p>
         <div class="condeq">\[\begin{array}{ll}
           c_T^{+} = (y,\ \textcolor{#d1495b}{r}) & \hspace{2.2em} c_S^{+} = y \\[4pt]
           c_T^{-} = (\varnothing,\ \textcolor{#d1495b}{r}) & \hspace{2.2em} c_S^{-} = \varnothing
@@ -340,7 +341,7 @@
       </div>
       <div class="setting">
         <h4>Dense-to-sparse video control</h4>
-        <p class="who">Wan-VACE · dense-control teacher → 4-keyframe student</p>
+        <p class="who">Wan2.1-VACE · dense-control teacher → 4-keyframe student · γ<sub>train</sub> = 5</p>
         <p>The teacher receives a dense per-frame control sequence; the student sees only 4 sparse keyframes. Dense vs. sparse control induces different negative predictions even under the same null text.</p>
         <div class="condeq">\[\begin{array}{ll}
           c_T^{+} = (y,\ \textcolor{#d1495b}{p_{\mathrm{dense}}}) & \hspace{2.2em} c_S^{+} = (y,\ p_{\mathrm{sparse}}) \\[4pt]
@@ -351,23 +352,65 @@
   </div>
 </section>
 
+<!-- ======================= INTERACTIVE BRANCH-ERROR CURVES ======================= -->
+<section class="section-alt">
+  <div class="wrap-wide">
+    <p class="eyebrow">Empirical signature</p>
+    <h2 class="sec">Watch NBA in the training signal</h2>
+    <div class="res-intro"><p>We track the two branch discrepancies \(\lVert e^{+}\rVert\) and \(\lVert e^{-}\rVert\)
+      at every optimization step of distillation. If composed matching truly constrained the branches, both curves
+      should fall for every objective. Hover to inspect the values; click the legend chips to toggle objectives.</p></div>
+
+    <div class="curvelab" id="curvelab">
+      <div class="clab-bar">
+        <div class="tabs clab-tabs" id="clab-settings"></div>
+        <div class="clab-chips" id="clab-chips"></div>
+      </div>
+      <div class="clab-panels">
+        <figure class="clab-panel">
+          <figcaption class="clab-pt">Positive-branch error&nbsp; \(\lVert e^{+}\rVert_{2}\)</figcaption>
+          <div class="clab-chart" data-branch="pos"></div>
+        </figure>
+        <figure class="clab-panel">
+          <figcaption class="clab-pt">Negative-branch error&nbsp; \(\lVert e^{-}\rVert_{2}\)</figcaption>
+          <div class="clab-chart" data-branch="neg"></div>
+        </figure>
+      </div>
+      <div class="clab-tools">
+        <label class="clab-toggle"><input type="checkbox" id="clab-log"> Log scale</label>
+        <span class="clab-x">x-axis: training step · hover to read values</span>
+      </div>
+      <p class="clab-note" id="clab-note"></p>
+    </div>
+  </div>
+</section>
+
 <!-- ======================= VISUAL KNOWLEDGE DISTILLATION ======================= -->
 <section class="section-alt">
   <div class="wrap-wide">
     <p class="eyebrow">Results · Setting 1</p>
     <h2 class="sec">Visual Knowledge Distillation</h2>
     <p class="sec-sub">
-      Trained at γ<sub>train</sub> = 3 and evaluated across inference guidance scales. Naive OPD fails
-      to transfer the reference-supplied visual knowledge consistently — it drifts as the scale departs from
-      training — while PDM preserves the defining attributes of the reference.
+      A qualitative case study on FLUX.2-klein: a reference-conditioned teacher distills visual knowledge into a
+      text-only student, trained at γ<sub>train</sub> = 2 and evaluated across inference guidance scales.
+      Naive OPD fails to transfer the reference-supplied knowledge consistently — it drifts as the scale departs
+      from training — while PDM preserves the defining attributes of the reference.
     </p>
 
     <div data-tabs>
       <div class="tabs">
-        <button class="tab active" data-target="vkd-identity">Concept identity</button>
+        <button class="tab active" data-target="vkd-transfer">Knowledge transfer</button>
+        <button class="tab" data-target="vkd-identity">Concept identity</button>
         <button class="tab" data-target="vkd-render">Rendering style</button>
       </div>
-      <div class="tabpane active" id="vkd-identity">
+      <div class="tabpane active" id="vkd-transfer">
+        <p class="subsec-note">What distillation actually adds: before it, the base student cannot produce the
+          reference-specific appearance from text alone. After PDM distillation, the text-only student reproduces the
+          reference-supplied visual knowledge across guidance scales — including γ = 2.5, beyond the training
+          scale — approaching the teacher that still sees the reference.</p>
+        <div id="fig-refcond"></div>
+      </div>
+      <div class="tabpane" id="vkd-identity">
         <p class="subsec-note">Distilling a specific concept's identity from a reference-conditioned teacher. Across inference guidance scales, PDM preserves the subject's identity and structure, whereas naive OPD degrades once the scale departs from the training configuration.</p>
         <div id="fig-vkd"></div>
       </div>
@@ -376,7 +419,7 @@
         <div id="fig-identity"></div>
       </div>
     </div>
-    <div class="legend"><span><span class="sw ours"></span> PDM (Ours) rows are highlighted; the last column is the reference target.</span></div>
+    <div class="legend"><span><span class="sw ours"></span> PDM (Ours) rows are highlighted; the last column is the reference image supplied to the teacher.</span></div>
   </div>
 </section>
 
@@ -610,10 +653,10 @@
 <footer>
   <div class="wrap">
     <p>Qwen Applications Business Group, Alibaba · Preprint 2026</p>
-    <p style="margin-top:6px">Page built for research dissemination. Video comparisons are placeholders to be added.</p>
   </div>
 </footer>
 
-<script defer src="js/main.js?v=14"></script>
+<script defer src="js/curves-data.js?v=1"></script>
+<script defer src="js/main.js?v=15"></script>
 </body>
 </html>

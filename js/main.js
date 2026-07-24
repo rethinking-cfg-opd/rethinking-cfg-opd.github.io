@@ -131,6 +131,48 @@ function buildFigGrid(id) {
   return carouselWrap(slides, cfg.samples.length);
 }
 
+/* ---- Reference-conditioned knowledge transfer ------------------------------
+   Rows: base student (no distillation) / PDM student / teacher (sees ref).
+   Cell path: assets/figures/refcond/s<N>_<method>_cfg<1|1p5|2|2p5>.webp
+   plus s<N>_ref.webp (the reference image, shared column). */
+const REFCOND = {
+  cols: ["CFG = 1", "CFG = 1.5", "CFG = 2", "CFG = 2.5", "Reference"],
+  cfgs: ["cfg1", "cfg1p5", "cfg2", "cfg2p5"],
+  dir: "assets/figures/refcond",
+  samples: [0, 2, 8, 9],
+  rows: [
+    { key: "base",    label: "Base student (no distill)" },
+    { key: "pdm",     label: "PDM student", ours: true },
+    { key: "teacher", label: "Teacher (sees reference)" },
+  ],
+};
+
+function refcondSlide(s) {
+  const cfg = REFCOND;
+  let h = '<div class="grid-scroll"><table class="dgrid figgrid"><thead><tr><th class="rowhead"></th>';
+  cfg.cols.forEach((c) => (h += `<th class="colhead${c === "Reference" ? " kf" : ""}">${c}</th>`));
+  h += "</tr></thead><tbody>";
+  cfg.rows.forEach((r, ri) => {
+    h += `<tr class="${r.ours ? "ours" : ""}">`;
+    const lbl = r.ours
+      ? `<span class="rowlabel-strong">${r.label}<span class="ours-pill">OURS</span></span>`
+      : r.label;
+    h += `<th class="rowhead">${lbl}</th>`;
+    cfg.cfgs.forEach((c) => (h += cell(`${cfg.dir}/s${s}_${r.key}_${c}.webp`, `${r.label} ${c}`)));
+    if (ri === 0) {
+      h += `<td rowspan="${cfg.rows.length}"><div class="cell tgt"><img loading="lazy" decoding="async" src="${cfg.dir}/s${s}_ref.webp" alt="reference image"></div></td>`;
+    }
+    h += "</tr>";
+  });
+  h += "</tbody></table></div>";
+  return h;
+}
+
+function buildRefcondGrid() {
+  const slides = REFCOND.samples.map((s) => `<div class="cslide">${refcondSlide(s)}</div>`).join("");
+  return carouselWrap(slides, REFCOND.samples.length);
+}
+
 /* ---- Fig 2b: pose-control NBA across guidance scales ----------------------
    Per clip: GT (skeleton overlay) + PDM / Naive at γ=1 and γ=3, over 4 keyframes.
    Cell path: assets/figures/nba_pose/<clip>_<rowkey>_kf<0-3>.webp
@@ -243,6 +285,220 @@ function initCopy() {
   });
 }
 
+/* ---- Interactive branch-error curves (wandb-style hover) -------------------
+   Data: window.CURVES[setting][method] = { pos: [...], neg: [...] } (index = step),
+   loaded from js/curves-data.js. Two synced panels (e+ / e-), setting tabs,
+   toggleable series, log-scale toggle, crosshair + value tooltip on hover. */
+function initCurveLab() {
+  const lab = document.getElementById("curvelab");
+  if (!lab || !window.CURVES) return;
+
+  const SERIES = [
+    { key: "naive",         label: "Naive OPD",             color: "#d1495b" },
+    { key: "positive_only", label: "Positive-only (λ = 0)", color: "#e8930c" },
+    { key: "pdm",           label: "PDM (Ours)",            color: "#14a06e" },
+  ];
+  const SETTINGS = [
+    {
+      key: "reference_conditioned", label: "Reference-conditioned",
+      note: "Reference-conditioned visual knowledge distillation: naive matching lets the negative-branch error ‖e⁻‖ drift upward as training proceeds, and positive-only matching (λ = 0) leaves it entirely unconstrained. Only PDM pulls both branch errors down together — the branch-level cancellation NBA predicts, watched live.",
+    },
+    {
+      key: "text_rendering", label: "Text rendering",
+      note: "Text rendering: with teacher and student aligned on the negative branch, all three objectives drive both branch errors down together — composed matching is benign in this regime, exactly as the analysis predicts.",
+    },
+  ];
+
+  const W = 560, H = 300, ML = 56, MR = 12, MT = 12, MB = 30;
+  const IW = W - ML - MR, IH = H - MT - MB;
+  const state = { setting: SETTINGS[0].key, on: { naive: true, positive_only: true, pdm: true }, log: false };
+
+  /* controls */
+  const tabsEl = document.getElementById("clab-settings");
+  SETTINGS.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = "tab" + (i === 0 ? " active" : "");
+    b.type = "button";
+    b.textContent = s.label;
+    b.addEventListener("click", () => {
+      tabsEl.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+      b.classList.add("active");
+      state.setting = s.key;
+      render();
+    });
+    tabsEl.appendChild(b);
+  });
+  const chipsEl = document.getElementById("clab-chips");
+  SERIES.forEach((s) => {
+    const b = document.createElement("button");
+    b.className = "clab-chip on";
+    b.type = "button";
+    b.innerHTML = `<span class="csw" style="background:${s.color}"></span>${s.label}`;
+    b.addEventListener("click", () => {
+      state.on[s.key] = !state.on[s.key];
+      b.classList.toggle("on", state.on[s.key]);
+      render();
+    });
+    chipsEl.appendChild(b);
+  });
+  const noteEl = document.getElementById("clab-note");
+  document.getElementById("clab-log").addEventListener("change", (e) => {
+    state.log = e.target.checked;
+    render();
+  });
+
+  const fmt = (v) =>
+    v >= 100 ? v.toFixed(0) : v >= 1 ? v.toFixed(2) : v >= 0.0095 ? v.toFixed(3) : v.toPrecision(2);
+
+  function niceTicks(lo, hi, count) {
+    const span = hi - lo;
+    if (!(span > 0)) return [lo];
+    const step0 = Math.pow(10, Math.floor(Math.log10(span / count)));
+    const err = span / count / step0;
+    const step = step0 * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1);
+    const out = [];
+    for (let t = Math.ceil(lo / step) * step; t <= hi + step * 1e-6; t += step) out.push(t);
+    return out;
+  }
+  function logTicks(lo, hi) {
+    let out = [];
+    for (let e = Math.floor(lo) - 1; e <= Math.ceil(hi); e++)
+      [1, 2, 5].forEach((m) => {
+        const t = e + Math.log10(m);
+        if (t >= lo - 1e-9 && t <= hi + 1e-9) out.push(t);
+      });
+    if (out.length > 7) out = out.filter((t) => Math.abs(t - Math.round(t)) < 1e-9 || Math.abs(t - Math.round(t) - Math.log10(5) + 1) < 1e-9);
+    if (out.length > 7) out = out.filter((t) => Math.abs(t - Math.round(t)) < 1e-9);
+    return out;
+  }
+
+  /* panels */
+  const panels = [...lab.querySelectorAll(".clab-chart")].map((el) => {
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"></svg><div class="clab-tip" hidden></div>`;
+    return { el, branch: el.dataset.branch, svg: el.querySelector("svg"), tip: el.querySelector(".clab-tip"), active: [], n: 0, lo: 0, hi: 1 };
+  });
+
+  const tf = (v) => (state.log ? Math.log10(v) : v);
+  const px = (i, n) => ML + (IW * i) / Math.max(1, n - 1);
+  const py = (v, p) => MT + IH * (1 - (tf(v) - p.lo) / (p.hi - p.lo || 1));
+
+  function render() {
+    const data = window.CURVES[state.setting];
+    const setting = SETTINGS.find((s) => s.key === state.setting);
+    noteEl.textContent = setting.note;
+    panels.forEach((p) => {
+      const active = SERIES.filter((s) => state.on[s.key] && data[s.key]);
+      p.active = active;
+      const n = active.length ? Math.max(...active.map((s) => data[s.key][p.branch].length)) : 0;
+      p.n = n;
+      let lo = Infinity, hi = -Infinity;
+      active.forEach((s) =>
+        data[s.key][p.branch].forEach((v) => {
+          const t = tf(v);
+          if (t < lo) lo = t;
+          if (t > hi) hi = t;
+        })
+      );
+      if (!active.length) { lo = 0; hi = 1; }
+      const pad = (hi - lo || 1) * 0.05;
+      p.lo = lo - pad;
+      p.hi = hi + pad;
+
+      let g = "";
+      /* y grid + labels */
+      let yt = state.log ? logTicks(p.lo, p.hi) : niceTicks(p.lo, p.hi, 5);
+      if (state.log && yt.length < 3)
+        /* narrow log range with no 1/2/5 decade tick inside — use nice linear values at log positions */
+        yt = niceTicks(Math.pow(10, p.lo), Math.pow(10, p.hi), 5).filter((v) => v > 0).map(Math.log10);
+      yt.forEach((t) => {
+        const y = MT + IH * (1 - (t - p.lo) / (p.hi - p.lo || 1));
+        const label = fmt(state.log ? Math.pow(10, t) : t);
+        g += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${W - MR}" y2="${y.toFixed(1)}" class="cl-grid"/>`;
+        g += `<text x="${ML - 7}" y="${(y + 3).toFixed(1)}" class="cl-ylab">${label}</text>`;
+      });
+      /* x ticks */
+      niceTicks(0, Math.max(1, n - 1), 6).forEach((t) => {
+        const x = px(t, n);
+        g += `<text x="${x.toFixed(1)}" y="${H - 8}" class="cl-xlab">${Math.round(t)}</text>`;
+      });
+      g += `<line x1="${ML}" y1="${MT + IH}" x2="${W - MR}" y2="${MT + IH}" class="cl-axis"/>`;
+      /* series paths (downsampled for path length, full data kept for hover) */
+      active.forEach((s) => {
+        const arr = data[s.key][p.branch];
+        const stride = Math.max(1, Math.floor(arr.length / 700));
+        let d = "";
+        for (let i = 0; i < arr.length; i += stride)
+          d += `${d ? "L" : "M"}${px(i, n).toFixed(1)} ${py(arr[i], p).toFixed(1)}`;
+        const last = arr.length - 1;
+        if (last % stride !== 0) d += `L${px(last, n).toFixed(1)} ${py(arr[last], p).toFixed(1)}`;
+        g += `<path class="cl-serie" pathLength="1" d="${d}" stroke="${s.color}"/>`;
+      });
+      /* hover layer */
+      g += `<g class="cl-hover" hidden><line y1="${MT}" y2="${MT + IH}" class="cl-cross"/>`;
+      active.forEach((s) => (g += `<circle r="3.5" fill="${s.color}" data-k="${s.key}" class="cl-dot"/>`));
+      g += `</g>`;
+      p.svg.innerHTML = g;
+      p.hover = p.svg.querySelector(".cl-hover");
+      p.cross = p.svg.querySelector(".cl-cross");
+      p.dots = [...p.svg.querySelectorAll(".cl-dot")];
+      p.tip.hidden = true;
+    });
+  }
+
+  /* wandb-style synced crosshair + tooltip */
+  let hoverRaf = false, hoverEvt = null, hoverPanel = null;
+  function updateHover() {
+    hoverRaf = false;
+    const data = window.CURVES[state.setting];
+    const p0 = hoverPanel;
+    if (!p0 || !p0.n) return;
+    const rect = p0.el.getBoundingClientRect();
+    const sx = W / rect.width;
+    const xpx = (hoverEvt.clientX - rect.left) * sx;
+    const idx = Math.max(0, Math.min(p0.n - 1, Math.round(((xpx - ML) / IW) * (p0.n - 1))));
+    panels.forEach((p) => {
+      if (!p.active.length) return;
+      const x = px(idx, p.n);
+      p.hover.hidden = false;
+      p.cross.setAttribute("x1", x.toFixed(1));
+      p.cross.setAttribute("x2", x.toFixed(1));
+      p.dots.forEach((dot) => {
+        const arr = data[dot.dataset.k][p.branch];
+        const i = Math.min(idx, arr.length - 1);
+        dot.setAttribute("cx", x.toFixed(1));
+        dot.setAttribute("cy", py(arr[i], p).toFixed(1));
+      });
+    });
+    /* tooltip only in the hovered panel, listing that panel's values */
+    const rows = p0.active
+      .map((s) => ({ s, v: data[s.key][p0.branch][Math.min(idx, data[s.key][p0.branch].length - 1)] }))
+      .sort((a, b) => b.v - a.v)
+      .map(({ s, v }) => `<div class="row"><span class="csw" style="background:${s.color}"></span><span class="lab">${s.label}</span><b>${fmt(v)}</b></div>`)
+      .join("");
+    p0.tip.innerHTML = `<div class="step">step ${idx}</div>${rows}`;
+    p0.tip.hidden = false;
+    const tw = p0.tip.offsetWidth;
+    let left = hoverEvt.clientX - rect.left + 16;
+    if (left + tw > rect.width - 6) left = hoverEvt.clientX - rect.left - tw - 16;
+    p0.tip.style.left = Math.max(6, left) + "px";
+    p0.tip.style.top = Math.max(6, hoverEvt.clientY - rect.top - 14) + "px";
+    panels.forEach((p) => { if (p !== p0) p.tip.hidden = true; });
+  }
+  panels.forEach((p) => {
+    p.el.addEventListener("pointermove", (e) => {
+      hoverEvt = e;
+      hoverPanel = p;
+      if (!hoverRaf) { hoverRaf = true; requestAnimationFrame(updateHover); }
+    });
+    p.el.addEventListener("pointerleave", () => {
+      hoverPanel = null;
+      panels.forEach((q) => { if (q.hover) q.hover.hidden = true; q.tip.hidden = true; });
+    });
+  });
+
+  render();
+}
+
 /* ---- Scroll progress bar (rAF-throttled) ---------------------------------- */
 function initProgress() {
   const bar = document.createElement("div");
@@ -325,6 +581,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   const nbaEl = document.getElementById("fig-nba_pose");
   if (nbaEl) nbaEl.innerHTML = buildNbaPoseGrid();
+  const rcEl = document.getElementById("fig-refcond");
+  if (rcEl) rcEl.innerHTML = buildRefcondGrid();
+  initCurveLab();
   // typeset math (KaTeX auto-render loaded via deferred <script> before this)
   if (window.renderMathInElement) {
     renderMathInElement(document.body, {
