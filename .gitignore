@@ -9,3 +9,6 @@ assets/ori_figures/
 # OS / editor cruft
 .DS_Store
 **/.DS_Store
+
+# raw curve values (compacted into js/curves-data.js)
+assets/curve_value/
