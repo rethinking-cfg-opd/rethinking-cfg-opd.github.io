@@ -243,8 +243,8 @@ table.figgrid tr.sample-sep > * { padding-top: 16px; }
 table.figgrid td .cell { max-width: 300px; }
 
 /* reference-style exemplar stack (paper Fig. 3/5 "Ref Style" column) */
-td.refstack-td { width: 16%; }
-.refstack { display: flex; flex-direction: column; gap: 6px; max-width: 190px; margin: 0 auto; }
+td.refstack-td { width: 19%; }
+.refstack { display: flex; flex-direction: column; gap: 6px; max-width: 232px; margin: 0 auto; }
 .refstack .cell { min-width: 0; }
 
 /* legend */
