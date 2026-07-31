@@ -105,6 +105,7 @@ h1.title .hl { color: var(--accent-dark); }
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { border-color: var(--accent); color: var(--accent-dark); }
 .btn.disabled { opacity: .5; pointer-events: none; }
+.btn .hf { font-size: 17px; line-height: 1; }
 
 /* ---------- Sections ---------- */
 section { padding: 52px 0; border-bottom: 1px solid var(--line); }
