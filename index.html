@@ -81,10 +81,10 @@
               \tilde{v} \;=\; \gamma\, v^{+} + (1-\gamma)\, v^{-}
               \;=\; v^{-} + \gamma\, \underbrace{\bigl(v^{+} - v^{-}\bigr)}_{\textstyle d}
             \]</div>
-            <p>The guidance scale \(\gamma\) sets how far the composed prediction \(\tilde{v}\) sits from
-              \(v^{-}\) along the <b class="c-dir">conditional direction</b> \(d\). Naive OPD supervises only
-              where \(\tilde{v}\) lands &mdash; so the teacher&ndash;student branch discrepancies
-              \(e_{+}\) and \(e_{-}\) behind it are left free to trade off against each other.
+            <p>So the axis below <b>is the guidance scale</b>: the ticks mark where the teacher&rsquo;s composition
+              lands as \(\gamma\) varies, with \(v^{-}\) at \(\gamma = 0\) and \(v^{+}\) at \(\gamma = 1\).
+              Naive OPD supervises only where \(\tilde{v}\) lands &mdash; so the teacher&ndash;student branch
+              discrepancies \(e_{+}\) and \(e_{-}\) behind it are free to trade off against each other.
               <b>Below they already do:</b> both branch predictions are wrong, yet the naive loss reads zero.</p>
           </div>
           <div class="tdemo-play">
@@ -620,6 +620,6 @@
 </footer>
 
 <script defer src="js/curves-data.js?v=1"></script>
-<script defer src="js/main.js?v=25"></script>
+<script defer src="js/main.js?v=27"></script>
 </body>
 </html>
