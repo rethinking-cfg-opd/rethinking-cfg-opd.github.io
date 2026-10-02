@@ -643,3 +643,11 @@ footer a { color: var(--ink-soft); }
   section { padding: 40px 0; }
   table.dgrid td .cell { min-width: 84px; }
 }
+
+/* ---------- Video overview ---------- */
+.videofig { margin: 0 auto; max-width: 900px; }
+.videofig video {
+  display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+  background: #0d1017; border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
