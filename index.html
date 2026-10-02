@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="css/style.css?v=28">
+<link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
 
@@ -70,19 +70,23 @@
   <div class="wrap">
     <figure class="fig teaser-fig" style="cursor:auto">
       <div class="teaser">
-
-        <!-- INTERACTIVE: branch-level under-identification of composed matching -->
         <div class="tcell tdemo" id="nbademo">
           <span class="tpill warn">The problem &middot; interactive</span>
           <h3 class="tp-title">One composed prediction, two branches</h3>
-          <p class="tp-sub">Under CFG the model forms a <b class="c-pos">positive branch prediction</b> v<sup>+</sup>
-            and a <b class="c-neg">negative branch prediction</b> v<sup>&minus;</sup>. Rewriting the composition
-            &#7797; = &gamma;v<sup>+</sup> + (1&minus;&gamma;)v<sup>&minus;</sup> as
-            <b>&#7797; = v<sup>&minus;</sup> + &gamma;d</b>, with conditional direction
-            <b class="c-dir">d = v<sup>+</sup> &minus; v<sup>&minus;</sup></b>, puts all three on one axis: the
-            guidance scale &gamma; scales how far &#7797; sits from v<sup>&minus;</sup> along d.</p>
-          <p class="tdemo-hint"><b>Drag the student&rsquo;s v<sup>+</sup> and v<sup>&minus;</sup></b> to set the branch
-            discrepancies e<sub>+</sub> and e<sub>&minus;</sub> &mdash; then change &gamma;.</p>
+          <div class="tdemo-intro">
+            <p>Under CFG the model forms a <b class="c-pos">positive branch prediction</b> \(v^{+}\) and a
+              <b class="c-neg">negative branch prediction</b> \(v^{-}\), then composes them. Rewriting that
+              composition puts all three quantities on a single axis:</p>
+            <div class="tdemo-eq">\[
+              \tilde{v} \;=\; \gamma\, v^{+} + (1-\gamma)\, v^{-}
+              \;=\; v^{-} + \gamma\, \underbrace{\bigl(v^{+} - v^{-}\bigr)}_{\textstyle d}
+            \]</div>
+            <p>The guidance scale \(\gamma\) sets how far the composed prediction \(\tilde{v}\) sits from
+              \(v^{-}\) along the <b class="c-dir">conditional direction</b> \(d\). Naive OPD supervises only
+              where \(\tilde{v}\) lands &mdash; so the teacher&ndash;student branch discrepancies
+              \(e_{+}\) and \(e_{-}\) behind it are left free to trade off against each other.
+              <b>Below they already do:</b> both branch predictions are wrong, yet the naive loss reads zero.</p>
+          </div>
           <div class="tdemo-stage">
             <svg id="nbasvg" viewBox="0 0 920 352" role="img"
                  aria-label="Interactive: teacher and student branch predictions and their CFG composition on one axis"></svg>
@@ -105,102 +109,20 @@
             <div class="tdemo-presets">
               <button type="button" data-preset="perfect">Both branches matched</button>
               <button type="button" data-preset="pos">Only e&#8330; nonzero</button>
-              <button type="button" data-preset="cancel">Discrepancies that cancel</button>
+              <button type="button" data-preset="cancel" class="on">Discrepancies that cancel</button>
             </div>
           </div>
           <div class="tdemo-readout" id="nbareadout"></div>
           <div class="tdemo-status" id="nbastatus"></div>
         </div>
-
-        <div class="teaser-grid">
-
-          <!-- TOP-RIGHT: SOLUTION -->
-          <div class="tcell">
-            <span class="tpill ok">Our fix — PDM</span>
-            <h3 class="tp-title">Branch-aware OPD</h3>
-            <p class="tp-sub"><b>Decouple</b> supervision onto the positive prediction \(v^{+}\) <i>and</i> the CFG direction \(d = v^{+} - v^{-}\).</p>
-            <div class="tdiagram">
-              <svg viewBox="0 0 260 172" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Positive prediction and CFG direction are supervised">
-                <defs>
-                  <marker id="gb" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#3f5efb"/></marker>
-                  <marker id="gr" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#d1495b"/></marker>
-                  <marker id="gp" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7048e8"/></marker>
-                </defs>
-                <!-- green halos = supervised: v+ and d -->
-                <line x1="42" y1="142" x2="152" y2="46"  stroke="#14a06e" stroke-width="9" stroke-linecap="round" opacity=".22"/>
-                <line x1="232" y1="116" x2="152" y2="46" stroke="#14a06e" stroke-width="9" stroke-linecap="round" opacity=".22"/>
-                <!-- v+ (supervised) -->
-                <line x1="42" y1="142" x2="152" y2="46"  stroke="#3f5efb" stroke-width="2.7" marker-end="url(#gb)"/>
-                <!-- v- (reference) -->
-                <line x1="42" y1="142" x2="232" y2="116" stroke="#d1495b" stroke-width="2.1" opacity=".85" marker-end="url(#gr)"/>
-                <!-- d = v+ - v-  (supervised direction) -->
-                <line x1="232" y1="116" x2="152" y2="46" stroke="#7048e8" stroke-width="2.7" marker-end="url(#gp)"/>
-                <text x="150" y="40"  font-size="12" fill="#3f5efb" font-style="italic">v⁺</text>
-                <text x="236" y="120" font-size="12" fill="#d1495b" font-style="italic">v⁻</text>
-                <text x="188" y="70"  font-size="12" fill="#7048e8" font-style="italic">d</text>
-                <circle cx="42" cy="142" r="3.2" fill="#1a1d29"/>
-              </svg>
-            </div>
-            <div class="tsuper"><span class="halo"></span> supervised: the positive prediction v⁺ <i>and</i> the direction d</div>
-            <div class="teq">\(\ell_{\mathrm{PDM}} = \lVert v_T^{+} - v_S^{+}\rVert_{2}^{2} + \lambda\lVert d_T - d_S\rVert_{2}^{2}\)</div>
-            <div class="tp-badge ok"><span class="ic">✓</span><span><b>Identifiable supervision.</b> No cross-branch cancellation, so distillation stays stable and effective across guidance scales.</span></div>
-          </div>
-
-          <!-- BOTTOM-RIGHT: WHAT IT COSTS -->
-          <div class="tcell">
-            <span class="tpill neutral">Cost</span>
-            <h3 class="ta-head">Sensitivity to guidance scale</h3>
-            <div class="plegend">
-              <span><span class="psw" style="background:#d1495b"></span> Naive OPD</span>
-              <span><span class="psw" style="background:#14a06e"></span> PDM (Ours)</span>
-            </div>
-            <div class="plots">
-              <figure>
-                <div class="pt">FID ↓</div>
-                <svg viewBox="0 0 230 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FID versus guidance scale">
-                  <line x1="38" y1="132" x2="214" y2="132" stroke="#c9cede" stroke-width="1"/>
-                  <line x1="38" y1="132" x2="38"  y2="16"  stroke="#c9cede" stroke-width="1"/>
-                  <g stroke="#eceef4" stroke-width="1"><line x1="38" y1="79" x2="214" y2="79"/><line x1="38" y1="26" x2="214" y2="26"/></g>
-                  <g fill="#868ea3" font-size="8" text-anchor="end"><text x="34" y="135">0</text><text x="34" y="82">40</text><text x="34" y="29">80</text></g>
-                  <g fill="#868ea3" font-size="8" text-anchor="middle"><text x="60" y="145">1</text><text x="128" y="145">3</text><text x="196" y="145">5</text></g>
-                  <polyline points="60,29 128,102 196,113" fill="none" stroke="#d1495b" stroke-width="2.2"/>
-                  <g fill="#d1495b"><circle cx="60" cy="29" r="3"/><circle cx="128" cy="102" r="3"/><circle cx="196" cy="113" r="3"/></g>
-                  <polyline points="60,112 128,114 196,114" fill="none" stroke="#14a06e" stroke-width="2.2"/>
-                  <g fill="#14a06e"><circle cx="60" cy="112" r="3"/><circle cx="128" cy="114" r="3"/><circle cx="196" cy="114" r="3"/></g>
-                  <text x="60" y="24" font-size="8.5" fill="#d1495b" text-anchor="middle" font-weight="700">78.2</text>
-                  <text x="196" y="108" font-size="8.5" fill="#d1495b" text-anchor="end">14.1</text>
-                  <text x="196" y="126" font-size="8.5" fill="#14a06e" text-anchor="end">13.8</text>
-                </svg>
-              </figure>
-              <figure>
-                <div class="pt">FVD ↓</div>
-                <svg viewBox="0 0 230 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FVD versus guidance scale">
-                  <line x1="38" y1="132" x2="214" y2="132" stroke="#c9cede" stroke-width="1"/>
-                  <line x1="38" y1="132" x2="38"  y2="16"  stroke="#c9cede" stroke-width="1"/>
-                  <g stroke="#eceef4" stroke-width="1"><line x1="38" y1="76" x2="214" y2="76"/><line x1="38" y1="20" x2="214" y2="20"/></g>
-                  <g fill="#868ea3" font-size="8" text-anchor="end"><text x="34" y="135">0</text><text x="34" y="79">300</text><text x="34" y="23">600</text></g>
-                  <g fill="#868ea3" font-size="8" text-anchor="middle"><text x="60" y="145">1</text><text x="128" y="145">3</text><text x="196" y="145">5</text></g>
-                  <polyline points="60,37 128,107 196,119" fill="none" stroke="#d1495b" stroke-width="2.2"/>
-                  <g fill="#d1495b"><circle cx="60" cy="37" r="3"/><circle cx="128" cy="107" r="3"/><circle cx="196" cy="119" r="3"/></g>
-                  <polyline points="60,121 128,122 196,121" fill="none" stroke="#14a06e" stroke-width="2.2"/>
-                  <g fill="#14a06e"><circle cx="60" cy="121" r="3"/><circle cx="128" cy="122" r="3"/><circle cx="196" cy="121" r="3"/></g>
-                  <text x="60" y="32" font-size="8.5" fill="#d1495b" text-anchor="middle" font-weight="700">507.7</text>
-                  <text x="196" y="114" font-size="8.5" fill="#d1495b" text-anchor="end">67.4</text>
-                  <text x="60" y="133" font-size="8.5" fill="#14a06e" text-anchor="start">61.0</text>
-                </svg>
-              </figure>
-            </div>
-            <p class="ta-cap">Naive OPD is <b>highly sensitive</b> to the inference guidance scale γ — it only fits the training scale. PDM stays low and <b>stable</b> across scales.</p>
-          </div>
-        </div>
       </div>
       <figcaption>
-        <b>Matching only the composed step is under-identified.</b> Its miss is
-        &gamma;&middot;e<sub>+</sub> &minus; (&gamma;&minus;1)&middot;e<sub>&minus;</sub>, so a whole line of non-zero
-        branch-error pairs drives it to zero &mdash; both branch predictions wrong, loss perfect. That ambiguity is
-        <b>Negative Branch Asymmetry (NBA)</b>, and it stays hidden until the guidance scale is recomposed.
-        <b>Positive&ndash;Direction Matching (PDM)</b> constrains the positive prediction and the CFG direction
-        separately, so zero loss requires zero error on both branches.
+        <b>Composed matching is under-identified at the branch level.</b> Its discrepancy is
+        &gamma;&middot;e<sub>+</sub> &minus; (&gamma;&minus;1)&middot;e<sub>&minus;</sub>, so an entire line of
+        non-zero branch-discrepancy pairs drives it to zero &mdash; both branch predictions wrong, loss perfect.
+        Switch the objective to see what <b>Positive&ndash;Direction Matching</b> constrains instead: the positive
+        prediction and the conditional direction separately, so zero loss requires
+        e<sub>+</sub> = e<sub>&minus;</sub> = 0.
       </figcaption>
     </figure>
   </div>
@@ -692,6 +614,6 @@
 </footer>
 
 <script defer src="js/curves-data.js?v=1"></script>
-<script defer src="js/main.js?v=22"></script>
+<script defer src="js/main.js?v=24"></script>
 </body>
 </html>
