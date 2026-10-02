@@ -664,6 +664,7 @@ function initNbaDemo() {
       card("PDM loss &#8467;<sub>PDM</sub> (&lambda;=1)", pdmL, "", pdm,
            !wrong ? "nothing to flag" : "catches it", "hit");
 
+    if (st.cap) { status.className = "tdemo-status playing"; status.innerHTML = st.cap; return; }
     let cls = "ok", msg = "";
     if (!wrong) {
       msg = "<b>Both branches match.</b> Every objective is at zero — nothing to tell apart.";
@@ -683,6 +684,118 @@ function initNbaDemo() {
     status.innerHTML = msg;
   }
 
+  /* ---- guided walkthrough: the video's build, driven through the demo ---- */
+  const playBtn = document.getElementById("nbaplay");
+  const prog = document.getElementById("nbaprog");
+  const TOUR = [
+    { ms: 2600, set: { ep: 0, en: 0, g: 5, obj: "naive" },
+      cap: "Under CFG the model forms two branch predictions, <b class='c-neg'>v&#8315;</b> and " +
+           "<b class='c-pos'>v&#8314;</b>. The composed prediction ṽ sits γ times the conditional " +
+           "direction <b class='c-dir'>d</b> away from v&#8315;." },
+    { ms: 2800,
+      cap: "<b>Naive OPD supervises only where ṽ lands</b> — never the two branch predictions behind it." },
+    { ms: 3000, to: { ep: 24 },
+      cap: "Let the positive branch be off by e₊. Guidance multiplies it: ṽ misses by <b>γ&middot;e₊</b>." },
+    { ms: 3200, to: { en: 30 },
+      cap: "Now let the negative branch be off too. Guidance also pushes away from v&#8315;, so this pulls ṽ " +
+           "back by <b>(γ−1)&middot;e₋</b>." },
+    { ms: 3400,
+      cap: "<b>Both branch predictions are wrong, yet &#8467;<sub>naive</sub> is 0.</b> The two contributions are " +
+           "equal and opposite, so they cancel in the composition." },
+    { ms: 3000, to: { g: 2 },
+      cap: "Change γ and the two contributions are reweighted. <b>The cancellation breaks</b> and the " +
+           "composed discrepancy reappears." },
+    { ms: 2600, to: { g: 5 },
+      cap: "Back at the training scale it looks perfect again — which is how this stays hidden until " +
+           "inference recomposes the branches." },
+    { ms: 3600, set: { obj: "pdm" },
+      cap: "<b>PDM constrains v<sup>+</sup> and the direction d separately</b>, so zero loss requires both " +
+           "branches to be right. &#8467;<sub>PDM</sub> never goes to zero here." },
+  ];
+  const TOTAL = TOUR.reduce((a, x) => a + x.ms, 0);
+  const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+  let tour = null;
+
+  function syncControls() {
+    gIn.value = st.g;
+    gOut.textContent = Math.abs(st.g - Math.round(st.g)) < 0.05 ? String(Math.round(st.g)) : st.g.toFixed(1);
+    document.getElementById("nbaobj").querySelectorAll("button")
+      .forEach((b) => b.classList.toggle("on", b.dataset.obj === st.obj));
+  }
+  function markPreset(name) {
+    root.querySelectorAll(".tdemo-presets button")
+      .forEach((o) => o.classList.toggle("on", o.dataset.preset === name));
+  }
+  function setPlayUI(mode) {
+    playBtn.dataset.mode = mode;
+    playBtn.querySelector(".tp-ico").innerHTML = mode === "pause" ? "&#10073;&#10073;" : mode === "replay" ? "&#8635;" : "&#9654;";
+    playBtn.querySelector(".tp-txt").textContent =
+      mode === "pause" ? "Stop" : mode === "replay" ? "Replay walkthrough" : "Play walkthrough";
+  }
+  function stopTour(finished) {
+    if (tour) cancelAnimationFrame(tour.raf);
+    tour = null;
+    st.cap = null;
+    root.classList.remove("playing");
+    setPlayUI(finished ? "replay" : "play");
+    if (!finished) prog.style.width = "0%";
+    draw();
+  }
+  function playTour() {
+    if (tour) cancelAnimationFrame(tour.raf);
+    tour = {};
+    let i = 0, done = 0;
+    root.classList.add("playing");
+    setPlayUI("pause");
+    markPreset(null);
+    const startStep = () => {
+      const step = TOUR[i];
+      if (step.set) Object.assign(st, step.set);
+      const from = { ep: st.ep, en: st.en, g: st.g };
+      const to = step.to || {};
+      st.cap = step.cap;
+      syncControls();
+      const t0 = performance.now();
+      const frame = (now) => {
+        if (!tour) return;
+        const p = Math.min(1, (now - t0) / step.ms);
+        /* land the move before the caption's beat ends, so each point settles */
+        const e = ease(Math.min(1, p / 0.7));
+        Object.keys(to).forEach((k) => (st[k] = from[k] + (to[k] - from[k]) * e));
+        if ("g" in to) syncControls();
+        render();
+        prog.style.width = (((done + p * step.ms) / TOTAL) * 100).toFixed(1) + "%";
+        if (p < 1) tour.raf = requestAnimationFrame(frame);
+        else {
+          done += step.ms;
+          if (++i < TOUR.length) startStep();
+          else { markPreset("cancel"); stopTour(true); }
+        }
+      };
+      tour.raf = requestAnimationFrame(frame);
+    };
+    startStep();
+  }
+  playBtn.addEventListener("click", () => {
+    if (tour) stopTour(false); else playTour();
+  });
+
+  /* autoplay once per tab the first time the figure is actually on screen */
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let seen = false;
+  try { seen = sessionStorage.getItem("nbaTourSeen") === "1"; } catch (_) {}
+  if (!reduced && !seen && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        io.disconnect();
+        try { sessionStorage.setItem("nbaTourSeen", "1"); } catch (_) {}
+        setTimeout(() => { if (!tour) playTour(); }, 500);
+      });
+    }, { threshold: 0.3 });
+    io.observe(root);
+  }
+
   /* ---- interaction ------------------------------------------------------- */
   const clamp = (v) => Math.max(-LIM, Math.min(LIM, v));
   let raf = false;
@@ -690,6 +803,7 @@ function initNbaDemo() {
 
   function attach(hit, key) {
     hit.addEventListener("pointerdown", (e) => {
+      stopTour(false); markPreset(null);
       hit.setPointerCapture(e.pointerId);
       const scale = VBW / svg.getBoundingClientRect().width;
       const x0 = e.clientX, v0 = st[key];
@@ -709,6 +823,7 @@ function initNbaDemo() {
     });
     hit.addEventListener("keydown", (e) => {
       const step = e.shiftKey ? 8 : 2;
+      if (["ArrowLeft", "ArrowRight", "Home"].includes(e.key)) { stopTour(false); markPreset(null); }
       if (e.key === "ArrowLeft") st[key] = clamp(st[key] + step);
       else if (e.key === "ArrowRight") st[key] = clamp(st[key] - step);
       else if (e.key === "Home") st[key] = 0;
@@ -720,10 +835,16 @@ function initNbaDemo() {
   attach(el["s-poshit"], "ep");
   attach(el["s-neghit"], "en");
 
-  gIn.addEventListener("input", () => { st.g = parseFloat(gIn.value); gOut.textContent = gIn.value; draw(); });
+  gIn.addEventListener("input", () => {
+    stopTour(false);
+    st.g = parseFloat(gIn.value);
+    gOut.textContent = gIn.value;
+    draw();
+  });
 
   document.getElementById("nbaobj").querySelectorAll("button").forEach((b) => {
     b.addEventListener("click", () => {
+      stopTour(false);
       st.obj = b.dataset.obj;
       b.parentElement.querySelectorAll("button").forEach((o) => o.classList.toggle("on", o === b));
       draw();
@@ -732,6 +853,7 @@ function initNbaDemo() {
 
   root.querySelectorAll(".tdemo-presets button").forEach((b) => {
     b.addEventListener("click", () => {
+      stopTour(false);
       const p = b.dataset.preset;
       if (p === "perfect") { st.ep = 0; st.en = 0; }
       else if (p === "pos") { st.ep = 24; st.en = 0; }
