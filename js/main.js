@@ -505,7 +505,7 @@ function initNbaDemo() {
   for (let k = 0; k <= 5; k++) {
     const x = X0 + k * D;
     grid += `<line class="nd-grid" x1="${x}" y1="58" x2="${x}" y2="250"/>`;
-    ticks += `<text class="nd-tick" x="${x}" y="48">${k === 0 ? "0" : k === 1 ? "d" : k + "d"}</text>`;
+    ticks += `<text class="nd-tick" x="${x}" y="48">${k}</text>`;
   }
   const row = (id, y, label, drag) => `
     <text class="nd-rowlab" x="128" y="${y + 5}">${label}</text>
@@ -528,7 +528,7 @@ function initNbaDemo() {
                 aria-label="student positive branch prediction" aria-valuemin="-34" aria-valuemax="34" aria-valuenow="0"/>` : ""}`;
 
   svg.innerHTML = `
-    <text class="nd-axislab" x="${X0 - 48}" y="48" text-anchor="end">from v&#8315;</text>
+    <text class="nd-axislab" x="${X0 - 48}" y="48" text-anchor="end">guidance scale γ</text>
     ${grid}${ticks}
     <line class="nd-guide" id="nd-gneg" y1="${YT}" y2="${YS}"/>
     <line class="nd-guide" id="nd-gpos" y1="${YT}" y2="${YS}"/>
@@ -692,7 +692,7 @@ function initNbaDemo() {
       cap: "Under CFG the model forms two branch predictions, <b class='c-neg'>v&#8315;</b> and " +
            "<b class='c-pos'>v&#8314;</b>. The composed prediction ṽ sits γ times the conditional " +
            "direction <b class='c-dir'>d</b> away from v&#8315;." },
-    { ms: 2800,
+    { ms: 2400,
       cap: "<b>Naive OPD supervises only where ṽ lands</b> — never the two branch predictions behind it." },
     { ms: 3000, to: { ep: 24 },
       cap: "Let the positive branch be off by e₊. Guidance multiplies it: ṽ misses by <b>γ&middot;e₊</b>." },
@@ -705,12 +705,21 @@ function initNbaDemo() {
     { ms: 3000, to: { g: 2 },
       cap: "Change γ and the two contributions are reweighted. <b>The cancellation breaks</b> and the " +
            "composed discrepancy reappears." },
-    { ms: 2600, to: { g: 5 },
+    { ms: 2200, to: { g: 5 },
       cap: "Back at the training scale it looks perfect again — which is how this stays hidden until " +
            "inference recomposes the branches." },
-    { ms: 3600, set: { obj: "pdm" },
-      cap: "<b>PDM constrains v<sup>+</sup> and the direction d separately</b>, so zero loss requires both " +
-           "branches to be right. &#8467;<sub>PDM</sub> never goes to zero here." },
+    { ms: 3000, set: { obj: "pdm" },
+      cap: "<b>PDM supervises v<sup>+</sup> and the direction d separately.</b> Neither can be traded off " +
+           "against the other, so &#8467;<sub>PDM</sub> is still positive on this exact configuration." },
+    { ms: 3000, to: { ep: 0, en: 0 },
+      cap: "Driving &#8467;<sub>PDM</sub> to zero therefore forces <b>e₊ = e₋ = 0</b>: both branch " +
+           "predictions land on the teacher’s, not merely their blend." },
+    { ms: 3400, to: { g: 1 },
+      cap: "<b>Now sweep the guidance scale.</b> With both branches matched the student’s composition " +
+           "tracks the teacher’s at every γ — there is nothing left to come apart." },
+    { ms: 2200, to: { g: 5 },
+      cap: "That is what branch-aware supervision buys: no cancellation was holding the composition " +
+           "together, so recomposing at a new γ costs nothing." },
   ];
   const TOTAL = TOUR.reduce((a, x) => a + x.ms, 0);
   const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
@@ -735,7 +744,9 @@ function initNbaDemo() {
   function stopTour(finished) {
     if (tour) cancelAnimationFrame(tour.raf);
     tour = null;
-    st.cap = null;
+    /* on a natural finish the closing line stays as the conclusion; any
+       hands-on input hands the status line back to the live readout */
+    if (!finished) st.cap = null;
     root.classList.remove("playing");
     setPlayUI(finished ? "replay" : "play");
     if (!finished) prog.style.width = "0%";
@@ -769,7 +780,7 @@ function initNbaDemo() {
         else {
           done += step.ms;
           if (++i < TOUR.length) startStep();
-          else { markPreset("cancel"); stopTour(true); }
+          else { markPreset("perfect"); stopTour(true); }
         }
       };
       tour.raf = requestAnimationFrame(frame);
