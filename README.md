@@ -35,7 +35,7 @@ source/                    # NON-deployed: original PDFs, extraction/build scrip
 |---|---|
 | Hero, abstract, key idea, quantitative tables | ✅ Final (numbers from Tables 1–5 of the paper) |
 | Video overview | ✅ 2-minute narrated explainer in `assets/videos/`, `preload="none"` with a poster so it costs nothing until played |
-| Teaser (Fig. 1) | ✅ Hand-built HTML/SVG — an **interactive** CFG "ruler" (`initNbaDemo` in `js/main.js`) where the student's two guesses are draggable, plus the PDM and sensitivity cells. Follows the video's framing: `v_cfg = v⁻ + γ(v⁺ − v⁻)`, so the miss is `γ·e₊ − (γ−1)·e₋` and vanishes along a line of non-zero branch errors |
+| Teaser (Fig. 1) | ✅ Hand-built HTML/SVG — an **interactive** axis (`initNbaDemo` in `js/main.js`) carrying both rows' branch predictions v⁺/v⁻, their conditional direction d and the composition ṽ. The student's v⁺/v⁻ are draggable, e₊/e₋ are drawn on the axis, and the objective switch shows what naive OPD vs PDM each supervise. Uses `ṽ = v⁻ + γd` so the composed discrepancy `γ·e₊ − (γ−1)·e₋` is readable, and vanishes along Eq. 7's line |
 | Branch-error curves (paper Fig. 2) | ✅ Interactive wandb-style hover chart (`initCurveLab` in `js/main.js`), data in `js/curves-data.js`. Regenerate from `assets/curve_value/` with `python3 source/build_curves.py` |
 | Reference-conditioned distillation (paper Fig. 3/5) | ✅ Carousel (`REFCOND` in `js/main.js`): Naive / PDM / teacher × CFG 1–2.5 + reference. Regenerate cells with `python3 source/build_refcond.py` |
 | Dense-to-sparse grids (pose / depth / scribble, Fig. 7–9) | ✅ Real frames, reconstructed cell-by-cell from the Keynote source |

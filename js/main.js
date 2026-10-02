@@ -470,22 +470,23 @@ function initCurveLab() {
   render();
 }
 
-/* ---- Interactive teaser: why checking only the composed step fails -------
-   A 1-D "ruler" view of CFG. Rewriting the composition as
-     v_cfg = v- + gamma * (v+ - v-)
-   makes it a walk: start at the negative guess, run gamma gaps past the
-   positive one. If the student's guesses slip by (sp, sn), its composed step
-   misses the teacher's by
-     miss = gamma*sp - (gamma-1)*sn,
-   which vanishes along a whole line of non-zero (sp, sn) -- the cancellation
-   that NBA is about. Drag the student's guesses to walk that line. */
+/* ---- Interactive teaser: branch-level under-identification -----------------
+   Paper terms throughout: positive / negative branch predictions v+ and v-,
+   their CFG composition vt = gamma*v+ + (1-gamma)*v-, the conditional
+   direction d = v+ - v- (Eq. 9) and the branch discrepancies e+ , e- (Eq. 4).
+   Rewriting the composition as vt = v- + gamma*d puts all three on one axis,
+   so the composed discrepancy
+     e_cfg = gamma*e+ - (gamma-1)*e-
+   can be read off directly. It vanishes along a whole line of non-zero
+   (e+, e-) -- Eq. 7 -- which is what leaves composed matching
+   under-identified at the branch level. */
 function initNbaDemo() {
   const root = document.getElementById("nbademo");
   const svg = document.getElementById("nbasvg");
   if (!root || !svg) return;
 
-  const VBW = 920, X0 = 170, GAP = 104, YT = 92, YS = 192, LIM = 36;
-  const st = { sp: 0, sn: 0, g: 5 };
+  const VBW = 920, X0 = 252, D = 90, YT = 96, YS = 206, LIM = 34;
+  const st = { ep: 0, en: 0, g: 5, obj: "naive" };
 
   const starPts = (x, y, r) => {
     let p = "";
@@ -496,130 +497,184 @@ function initNbaDemo() {
     return p.trim();
   };
 
-  /* ---- static scaffold (built once; only attributes change afterwards) --- */
-  let grid = "", nums = "";
+  /* ---- static scaffold: built once, then only attributes change ---------- */
+  let grid = "", ticks = "";
   for (let k = 0; k <= 5; k++) {
-    const x = X0 + k * GAP;
-    grid += `<line class="nd-grid" x1="${x}" y1="56" x2="${x}" y2="240"/>`;
-    nums += `<text class="nd-gap" x="${x}" y="46">${k}</text>`;
+    const x = X0 + k * D;
+    grid += `<line class="nd-grid" x1="${x}" y1="58" x2="${x}" y2="250"/>`;
+    ticks += `<text class="nd-tick" x="${x}" y="48">${k === 0 ? "0" : k === 1 ? "d" : k + "d"}</text>`;
   }
   const row = (id, y, label, drag) => `
-    <text class="nd-rowlab" x="148" y="${y + 5}">${label}</text>
-    <line class="nd-base" x1="${X0 - 26}" y1="${y}" x2="${VBW - 40}" y2="${y}"/>
-    <line class="nd-span" id="${id}-span" x1="0" y1="${y}" x2="0" y2="${y}"/>
-    <line class="nd-reach" id="${id}-reach" x1="0" y1="${y}" x2="0" y2="${y}"/>
+    <text class="nd-rowlab" x="128" y="${y + 5}">${label}</text>
+    <line class="nd-base" x1="${X0 - 40}" y1="${y}" x2="${VBW - 40}" y2="${y}"/>
+    <line class="nd-halo-d" id="${id}-halod" y1="${y}" y2="${y}"/>
+    <line class="nd-dir" id="${id}-dir" y1="${y}" y2="${y}"/>
+    <line class="nd-reach" id="${id}-reach" y1="${y}" y2="${y}"/>
+    <text class="nd-dlab" id="${id}-dlab" y="${y - 13}"></text>
+    <circle class="nd-halo-pt" id="${id}-halopos" cy="${y}" r="15"/>
+    <circle class="nd-halo-pt" id="${id}-halostar" cy="${y}" r="18"/>
     <polygon class="nd-star" id="${id}-star" points=""/>
     <circle class="nd-neg" id="${id}-neg" cy="${y}" r="7.5"/>
     <circle class="nd-pos" id="${id}-pos" cy="${y}" r="7.5"/>
+    <text class="nd-ptlab nd-ptneg" id="${id}-neglab" y="${y + 26}"></text>
+    <text class="nd-ptlab nd-ptpos" id="${id}-poslab" y="${y + 26}"></text>
+    <text class="nd-ptlab nd-ptstar" id="${id}-starlab" y="${y + 27}"></text>
     ${drag ? `<circle class="nd-hit" id="${id}-neghit" cy="${y}" r="17" tabindex="0" role="slider"
-                aria-label="student negative guess" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0"/>
+                aria-label="student negative branch prediction" aria-valuemin="-34" aria-valuemax="34" aria-valuenow="0"/>
               <circle class="nd-hit" id="${id}-poshit" cy="${y}" r="17" tabindex="0" role="slider"
-                aria-label="student positive guess" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0"/>` : ""}`;
+                aria-label="student positive branch prediction" aria-valuemin="-34" aria-valuemax="34" aria-valuenow="0"/>` : ""}`;
 
   svg.innerHTML = `
-    <text class="nd-axislab" x="${X0 - 34}" y="46" text-anchor="end">gaps</text>
-    ${grid}${nums}
+    <text class="nd-axislab" x="${X0 - 48}" y="48" text-anchor="end">from v&#8315;</text>
+    ${grid}${ticks}
+    <line class="nd-guide" id="nd-gneg" y1="${YT}" y2="${YS}"/>
+    <line class="nd-guide" id="nd-gpos" y1="${YT}" y2="${YS}"/>
+    <line class="nd-guide" id="nd-gstar" y1="${YT}" y2="${YS + 30}"/>
     ${row("t", YT, "Teacher", false)}
     ${row("s", YS, "Student", true)}
-    <line class="nd-drop" id="nd-drop" y1="${YT}" y2="300"/>
-    <line class="nd-miss" id="nd-missline" y1="${YS + 32}" y2="${YS + 32}"/>
-    <text class="nd-misslab" id="nd-misslab" y="${YS + 26}"></text>
-    <text class="nd-barlab" x="148" y="266" text-anchor="end">why it lands there</text>
-    <rect class="nd-bar nd-bar-pos" id="nd-barpos" y="252" height="14" rx="3"/>
-    <rect class="nd-bar nd-bar-neg" id="nd-barneg" y="276" height="14" rx="3"/>
-    <text class="nd-bartx" id="nd-barpostx" y="259"></text>
-    <text class="nd-bartx" id="nd-barnegtx" y="283"></text>
-    <text class="nd-cancel" id="nd-cancel" y="309" text-anchor="middle"></text>`;
+    <line class="nd-err nd-err-neg" id="nd-eneg" y1="${YS}" y2="${YS}"/>
+    <line class="nd-err nd-err-pos" id="nd-epos" y1="${YS}" y2="${YS}"/>
+    <text class="nd-errlab nd-ptneg" id="nd-eneglab" y="${YS - 34}"></text>
+    <text class="nd-errlab nd-ptpos" id="nd-eposlab" y="${YS - 34}"></text>
+    <line class="nd-err nd-err-cfg" id="nd-ecfg" y1="${YS + 30}" y2="${YS + 30}"/>
+    <text class="nd-errlab nd-ptstar" id="nd-ecfglab" y="${YS + 46}"></text>
+    <rect class="nd-bar nd-bar-pos" id="nd-barpos" y="272" height="14" rx="3"/>
+    <rect class="nd-bar nd-bar-neg" id="nd-barneg" y="296" height="14" rx="3"/>
+    <text class="nd-bartx" id="nd-barpostx" y="279"></text>
+    <text class="nd-bartx" id="nd-barnegtx" y="303"></text>
+    <text class="nd-barlab" x="128" y="286" text-anchor="end">composed discrepancy</text>
+    <text class="nd-cancel" id="nd-cancel" y="330" text-anchor="middle"></text>`;
 
   const $ = (id) => svg.querySelector("#" + id);
-  const el = {
-    tspan: $("t-span"), treach: $("t-reach"), tstar: $("t-star"), tneg: $("t-neg"), tpos: $("t-pos"),
-    sspan: $("s-span"), sreach: $("s-reach"), sstar: $("s-star"), sneg: $("s-neg"), spos: $("s-pos"),
-    neghit: $("s-neghit"), poshit: $("s-poshit"),
-    drop: $("nd-drop"), missline: $("nd-missline"), misslab: $("nd-misslab"),
-    barpos: $("nd-barpos"), barneg: $("nd-barneg"),
-    barpostx: $("nd-barpostx"), barnegtx: $("nd-barnegtx"), cancel: $("nd-cancel"),
-  };
+  const el = {};
+  ["t-dir","t-reach","t-star","t-neg","t-pos","t-dlab","t-neglab","t-poslab","t-starlab",
+   "t-halod","t-halopos","t-halostar",
+   "s-dir","s-reach","s-star","s-neg","s-pos","s-dlab","s-neglab","s-poslab","s-starlab",
+   "s-halod","s-halopos","s-halostar","s-neghit","s-poshit",
+   "nd-gneg","nd-gpos","nd-gstar","nd-eneg","nd-epos","nd-eneglab","nd-eposlab",
+   "nd-ecfg","nd-ecfglab","nd-barpos","nd-barneg","nd-barpostx","nd-barnegtx","nd-cancel"
+  ].forEach((k) => (el[k] = $(k)));
+
   const readout = document.getElementById("nbareadout");
   const status = document.getElementById("nbastatus");
+  const objNote = document.getElementById("nbaobjnote");
   const gIn = document.getElementById("nbagamma");
   const gOut = document.getElementById("nbagammaout");
-
   const fmt = (v) => (Math.abs(v) < 0.005 ? "0.00" : v.toFixed(2));
+  const setLine = (n, x1, x2) => { n.setAttribute("x1", x1); n.setAttribute("x2", x2); };
 
   function render() {
     const g = st.g;
-    const tNeg = X0, tPos = X0 + GAP, tStar = X0 + g * GAP;
-    const sNeg = X0 + st.sn, sPos = X0 + GAP + st.sp;
+    /* teacher is the reference; the student's branches carry the discrepancies.
+       e+ = v_T+ - v_S+, so a positive e+ puts the student's v+ to the LEFT. */
+    const tNeg = X0, tPos = X0 + D, tStar = X0 + g * D;
+    const sNeg = tNeg - st.en, sPos = tPos - st.ep;
     const sStar = sNeg + g * (sPos - sNeg);
 
-    el.tneg.setAttribute("cx", tNeg); el.tpos.setAttribute("cx", tPos);
-    el.sneg.setAttribute("cx", sNeg); el.spos.setAttribute("cx", sPos);
-    el.neghit.setAttribute("cx", sNeg); el.poshit.setAttribute("cx", sPos);
-    el.neghit.setAttribute("aria-valuenow", st.sn.toFixed(0));
-    el.poshit.setAttribute("aria-valuenow", st.sp.toFixed(0));
+    [["t", tNeg, tPos, tStar], ["s", sNeg, sPos, sStar]].forEach(([k, neg, pos, star]) => {
+      el[k + "-neg"].setAttribute("cx", neg);
+      el[k + "-pos"].setAttribute("cx", pos);
+      setLine(el[k + "-dir"], neg, pos);
+      setLine(el[k + "-reach"], pos, star);
+      el[k + "-star"].setAttribute("points", starPts(star, k === "t" ? YT : YS, 11));
+      el[k + "-dlab"].setAttribute("x", (neg + pos) / 2);
+      el[k + "-dlab"].textContent = "d";
+      el[k + "-neglab"].setAttribute("x", neg); el[k + "-neglab"].textContent = "v⁻";
+      el[k + "-poslab"].setAttribute("x", pos); el[k + "-poslab"].textContent = "v⁺";
+      el[k + "-starlab"].setAttribute("x", star); el[k + "-starlab"].textContent = "ṽ";
+    });
+    el["s-neghit"].setAttribute("cx", sNeg);
+    el["s-poshit"].setAttribute("cx", sPos);
+    el["s-neghit"].setAttribute("aria-valuenow", st.en.toFixed(0));
+    el["s-poshit"].setAttribute("aria-valuenow", st.ep.toFixed(0));
 
-    el.tspan.setAttribute("x1", tNeg); el.tspan.setAttribute("x2", tPos);
-    el.treach.setAttribute("x1", tPos); el.treach.setAttribute("x2", tStar);
-    el.sspan.setAttribute("x1", sNeg); el.sspan.setAttribute("x2", sPos);
-    el.sreach.setAttribute("x1", sPos); el.sreach.setAttribute("x2", sStar);
-    el.tstar.setAttribute("points", starPts(tStar, YT, 11));
-    el.sstar.setAttribute("points", starPts(sStar, YS, 11));
+    /* guides drop from the teacher's branches so the discrepancies are visible */
+    setLine(el["nd-gneg"], tNeg, tNeg);
+    setLine(el["nd-gpos"], tPos, tPos);
+    setLine(el["nd-gstar"], tStar, tStar);
 
-    /* miss between the two landing points */
-    const miss = sStar - tStar, amiss = Math.abs(miss), off = amiss > 1.5;
-    el.drop.setAttribute("x1", tStar); el.drop.setAttribute("x2", tStar);
-    el.cancel.setAttribute("x", tStar);
-    el.missline.setAttribute("x1", tStar); el.missline.setAttribute("x2", sStar);
-    el.missline.classList.toggle("on", off);
-    el.misslab.setAttribute("x", (tStar + sStar) / 2);
-    el.misslab.textContent = off ? `misses by ${fmt(amiss / GAP)} gaps` : "";
-    el.sstar.classList.toggle("bad", off);
+    /* e+ , e- and the composed discrepancy, drawn on the student's axis */
+    const show = (line, lab, a, b, text) => {
+      setLine(line, a, b);
+      const on = Math.abs(b - a) > 1.5;
+      line.classList.toggle("on", on);
+      lab.setAttribute("x", (a + b) / 2);
+      lab.textContent = on ? text : "";
+    };
+    show(el["nd-eneg"], el["nd-eneglab"], tNeg, sNeg, `e₋ = ${fmt(Math.abs(st.en) / D)}`);
+    show(el["nd-epos"], el["nd-eposlab"], tPos, sPos, `e₊ = ${fmt(Math.abs(st.ep) / D)}`);
+    const miss = sStar - tStar;
+    show(el["nd-ecfg"], el["nd-ecfglab"], tStar, sStar,
+         `composed discrepancy = ${fmt(Math.abs(miss) / D)}`);
+    el["s-star"].classList.toggle("bad", Math.abs(miss) > 1.5);
 
-    /* the two contributions, drawn from the teacher's landing point */
-    const push = st.sp * g, pull = -st.sn * (g - 1);
+    /* the composed discrepancy decomposed: gamma*e+ against (gamma-1)*e- */
+    const ep = st.ep / D, en = st.en / D;
+    const push = -ep * D * g, pull = en * D * (g - 1);
     const bar = (r, t, len, label) => {
-      const x = len >= 0 ? tStar : tStar + len;
-      r.setAttribute("x", x); r.setAttribute("width", Math.max(Math.abs(len), 0.5));
+      r.setAttribute("x", len >= 0 ? tStar : tStar + len);
+      r.setAttribute("width", Math.max(Math.abs(len), 0.5));
       const end = tStar + len;
       t.setAttribute("x", len >= 0 ? end + 8 : end - 8);
       t.setAttribute("text-anchor", len >= 0 ? "start" : "end");
       t.textContent = Math.abs(len) < 1 ? "" : label;
     };
-    bar(el.barpos, el.barpostx, push, `pushed out  γ·e₊ = ${fmt(Math.abs(push) / GAP)}`);
-    bar(el.barneg, el.barnegtx, pull, `pulled back  (γ−1)·e₋ = ${fmt(Math.abs(pull) / GAP)}`);
-    const cancelling = Math.abs(push) > 6 && amiss <= 1.5;
-    el.cancel.textContent = cancelling ? "same length, opposite ways → they cancel" : "";
+    bar(el["nd-barpos"], el["nd-barpostx"], push, `γ·e₊ = ${fmt(Math.abs(g * ep))}`);
+    bar(el["nd-barneg"], el["nd-barnegtx"], pull, `(γ−1)·e₋ = ${fmt(Math.abs((g - 1) * en))}`);
+    const cancelling = Math.abs(push) > 6 && Math.abs(miss) <= 1.5;
+    el["nd-cancel"].setAttribute("x", tStar);
+    el["nd-cancel"].textContent = cancelling ? "equal and opposite → they cancel" : "";
 
-    /* losses, in units of one gap */
-    const ep = st.sp / GAP, en = st.sn / GAP;
-    const naive = Math.pow(g * ep - (g - 1) * en, 2);
-    const pdm = ep * ep + Math.pow(ep - en, 2);
+    /* what the selected objective actually constrains */
+    const pdm = st.obj === "pdm";
+    el["s-halostar"].setAttribute("cx", sStar);
+    el["s-halopos"].setAttribute("cx", sPos);
+    setLine(el["s-halod"], sNeg, sPos);
+    el["s-halostar"].classList.toggle("on", !pdm);
+    el["s-halopos"].classList.toggle("on", pdm);
+    el["s-halod"].classList.toggle("on", pdm);
+    el["t-halostar"].setAttribute("cx", tStar);
+    el["t-halostar"].classList.remove("on");
+    el["t-halopos"].setAttribute("cx", tPos);
+    el["t-halopos"].classList.toggle("on", pdm);
+    setLine(el["t-halod"], tNeg, tPos);
+    el["t-halod"].classList.toggle("on", pdm);
+    objNote.innerHTML = pdm
+      ? "the positive prediction v<sup>+</sup> <i>and</i> the conditional direction d — separately"
+      : "the CFG-composed prediction ṽ only";
+
+    /* losses, in units of d */
+    const naiveL = Math.pow(g * ep - (g - 1) * en, 2);
+    const pdmL = ep * ep + Math.pow(ep - en, 2);
     const wrong = Math.abs(ep) > 0.02 || Math.abs(en) > 0.02;
-    readout.innerHTML = `
-      <div class="nd-stat"><span>branch error e&#8330;</span><b class="c-pos">${fmt(Math.abs(ep))}</b></div>
-      <div class="nd-stat"><span>branch error e&#8331;</span><b class="c-neg">${fmt(Math.abs(en))}</b></div>
-      <div class="nd-stat ${naive < 0.0025 ? "zero" : "nonzero"}"><span>naive loss</span><b>${fmt(naive)}</b></div>
-      <div class="nd-stat ${pdm < 0.0025 ? "zero" : "nonzero"}"><span>PDM loss</span><b>${fmt(pdm)}</b></div>`;
+    const card = (lab, val, cls, active) =>
+      `<div class="nd-stat ${cls}${active ? " active" : ""}"><span>${lab}</span><b>${fmt(val)}</b></div>`;
+    readout.innerHTML =
+      card("branch discrepancy e&#8330;", Math.abs(ep), "e-pos", false) +
+      card("branch discrepancy e&#8331;", Math.abs(en), "e-neg", false) +
+      card("naive loss &#8467;<sub>naive</sub>", naiveL, naiveL < 0.0025 ? "zero" : "nonzero", !pdm) +
+      card("PDM loss &#8467;<sub>PDM</sub> (&lambda;=1)", pdmL, pdmL < 0.0025 ? "zero" : "nonzero", pdm);
 
     let cls = "ok", msg = "";
     if (!wrong) {
-      msg = "<b>Both guesses match.</b> Every loss is zero — nothing to catch.";
-    } else if (naive < 0.0025) {
+      msg = "<b>Both branches match.</b> Every objective is at zero — nothing to tell apart.";
+    } else if (naiveL < 0.0025) {
       cls = "bad";
-      msg = "<b>Both guesses are wrong, yet the naive loss reads 0.</b> The slips cancel in the blend, " +
-            "so naive OPD sees a perfect student — PDM still sees the error. Now move γ: the two " +
-            "contributions are reweighted, the cancellation breaks, and the miss reappears.";
+      msg = "<b>Both branch predictions are wrong, yet &#8467;<sub>naive</sub> is 0.</b> " +
+            "γ·e₊ and (γ−1)·e₋ are equal and opposite, so they cancel in the " +
+            "composition — this is the line of solutions in Eq.&nbsp;7, and it is why composed matching is " +
+            "under-identified at the branch level. &#8467;<sub>PDM</sub> stays positive. Move γ and the " +
+            "weights change, so the cancellation breaks.";
     } else {
       cls = "warn";
-      msg = `<b>The final step misses.</b> Naive loss ${fmt(naive)} — but notice it is one number for two ` +
-            "unknowns, so some other pair of wrong guesses would drive it back to 0.";
+      msg = `<b>The composed prediction misses.</b> &#8467;<sub>naive</sub> = ${fmt(naiveL)} — but it is one ` +
+            "scalar constraint on two unknowns, so another (e₊, e₋) pair would drive it back to 0.";
     }
     status.className = "tdemo-status " + cls;
     status.innerHTML = msg;
   }
 
-  /* ---- dragging ---------------------------------------------------------- */
+  /* ---- interaction ------------------------------------------------------- */
   const clamp = (v) => Math.max(-LIM, Math.min(LIM, v));
   let raf = false;
   const draw = () => { if (!raf) { raf = true; requestAnimationFrame(() => { raf = false; render(); }); } };
@@ -630,7 +685,7 @@ function initNbaDemo() {
       const scale = VBW / svg.getBoundingClientRect().width;
       const x0 = e.clientX, v0 = st[key];
       root.classList.add("dragging");
-      const move = (ev) => { st[key] = clamp(v0 + (ev.clientX - x0) * scale); draw(); };
+      const move = (ev) => { st[key] = clamp(v0 - (ev.clientX - x0) * scale); draw(); };
       const up = (ev) => {
         hit.releasePointerCapture(ev.pointerId);
         hit.removeEventListener("pointermove", move);
@@ -644,34 +699,38 @@ function initNbaDemo() {
       e.preventDefault();
     });
     hit.addEventListener("keydown", (e) => {
-      const step = e.shiftKey ? 10 : 2;
-      if (e.key === "ArrowLeft") st[key] = clamp(st[key] - step);
-      else if (e.key === "ArrowRight") st[key] = clamp(st[key] + step);
+      const step = e.shiftKey ? 8 : 2;
+      if (e.key === "ArrowLeft") st[key] = clamp(st[key] + step);
+      else if (e.key === "ArrowRight") st[key] = clamp(st[key] - step);
       else if (e.key === "Home") st[key] = 0;
       else return;
       e.preventDefault();
       draw();
     });
   }
-  attach(el.poshit, "sp");
-  attach(el.neghit, "sn");
+  attach(el["s-poshit"], "ep");
+  attach(el["s-neghit"], "en");
 
-  gIn.addEventListener("input", () => {
-    st.g = parseFloat(gIn.value);
-    gOut.textContent = gIn.value;
-    draw();
+  gIn.addEventListener("input", () => { st.g = parseFloat(gIn.value); gOut.textContent = gIn.value; draw(); });
+
+  document.getElementById("nbaobj").querySelectorAll("button").forEach((b) => {
+    b.addEventListener("click", () => {
+      st.obj = b.dataset.obj;
+      b.parentElement.querySelectorAll("button").forEach((o) => o.classList.toggle("on", o === b));
+      draw();
+    });
   });
 
   root.querySelectorAll(".tdemo-presets button").forEach((b) => {
     b.addEventListener("click", () => {
       const p = b.dataset.preset;
-      if (p === "perfect") { st.sp = 0; st.sn = 0; }
-      else if (p === "pos") { st.sp = 26; st.sn = 0; }
+      if (p === "perfect") { st.ep = 0; st.en = 0; }
+      else if (p === "pos") { st.ep = 24; st.en = 0; }
       else if (p === "cancel") {
-        /* at gamma = 1 the composed step IS the positive guess, so the negative
-           branch is unconstrained outright -- show that instead of a pair */
-        if (st.g <= 1) { st.sp = 0; st.sn = 42; }
-        else { st.sp = 24; st.sn = clamp((24 * st.g) / (st.g - 1)); st.sp = (st.sn * (st.g - 1)) / st.g; }
+        /* Eq. 7: e+ = ((gamma-1)/gamma) * e- . At gamma = 1 the composition is
+           v+ itself, so e- is unconstrained outright -- show that instead. */
+        if (st.g <= 1) { st.ep = 0; st.en = 30; }
+        else { st.en = clamp(30); st.ep = (st.en * (st.g - 1)) / st.g; }
       }
       root.querySelectorAll(".tdemo-presets button").forEach((o) => o.classList.toggle("on", o === b));
       draw();

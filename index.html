@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="css/style.css?v=27">
+<link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
 
@@ -71,18 +71,29 @@
     <figure class="fig teaser-fig" style="cursor:auto">
       <div class="teaser">
 
-        <!-- INTERACTIVE: why checking only the final step fails -->
+        <!-- INTERACTIVE: branch-level under-identification of composed matching -->
         <div class="tcell tdemo" id="nbademo">
           <span class="tpill warn">The problem &middot; interactive</span>
-          <h3 class="tp-title">Two guesses, one final step</h3>
-          <p class="tp-sub">Every CFG step makes two guesses: a <b class="c-pos">positive</b> one with the prompt and a
-            <b class="c-neg">negative</b> one without. The step actually taken starts at the negative guess and runs
-            <b>&gamma; gaps</b> past the positive one. Naive OPD only checks where that step lands &mdash;
-            not the two guesses behind it.</p>
-          <p class="tdemo-hint"><b>Drag the student&rsquo;s two guesses</b>, or try a preset &mdash; then change &gamma;.</p>
+          <h3 class="tp-title">One composed prediction, two branches</h3>
+          <p class="tp-sub">Under CFG the model forms a <b class="c-pos">positive branch prediction</b> v<sup>+</sup>
+            and a <b class="c-neg">negative branch prediction</b> v<sup>&minus;</sup>. Rewriting the composition
+            &#7797; = &gamma;v<sup>+</sup> + (1&minus;&gamma;)v<sup>&minus;</sup> as
+            <b>&#7797; = v<sup>&minus;</sup> + &gamma;d</b>, with conditional direction
+            <b class="c-dir">d = v<sup>+</sup> &minus; v<sup>&minus;</sup></b>, puts all three on one axis: the
+            guidance scale &gamma; scales how far &#7797; sits from v<sup>&minus;</sup> along d.</p>
+          <p class="tdemo-hint"><b>Drag the student&rsquo;s v<sup>+</sup> and v<sup>&minus;</sup></b> to set the branch
+            discrepancies e<sub>+</sub> and e<sub>&minus;</sub> &mdash; then change &gamma;.</p>
           <div class="tdemo-stage">
-            <svg id="nbasvg" viewBox="0 0 920 322" role="img"
-                 aria-label="Interactive diagram: the teacher's and student's CFG guesses on a ruler"></svg>
+            <svg id="nbasvg" viewBox="0 0 920 352" role="img"
+                 aria-label="Interactive: teacher and student branch predictions and their CFG composition on one axis"></svg>
+          </div>
+          <div class="tdemo-objective">
+            <span class="tdemo-objlab">supervised by</span>
+            <div class="tdemo-objbtns" id="nbaobj">
+              <button type="button" data-obj="naive" class="on">Naive OPD</button>
+              <button type="button" data-obj="pdm">PDM (ours)</button>
+            </div>
+            <span class="tdemo-objnote" id="nbaobjnote"></span>
           </div>
           <div class="tdemo-controls">
             <label class="tdemo-gamma">
@@ -92,9 +103,9 @@
               <output id="nbagammaout">5</output>
             </label>
             <div class="tdemo-presets">
-              <button type="button" data-preset="perfect">Perfect student</button>
-              <button type="button" data-preset="pos">Only v&#8314; slips</button>
-              <button type="button" data-preset="cancel">Errors that cancel</button>
+              <button type="button" data-preset="perfect">Both branches matched</button>
+              <button type="button" data-preset="pos">Only e&#8330; nonzero</button>
+              <button type="button" data-preset="cancel">Discrepancies that cancel</button>
             </div>
           </div>
           <div class="tdemo-readout" id="nbareadout"></div>
@@ -186,7 +197,7 @@
       <figcaption>
         <b>Matching only the composed step is under-identified.</b> Its miss is
         &gamma;&middot;e<sub>+</sub> &minus; (&gamma;&minus;1)&middot;e<sub>&minus;</sub>, so a whole line of non-zero
-        branch-error pairs drives it to zero &mdash; both guesses wrong, loss perfect. That ambiguity is
+        branch-error pairs drives it to zero &mdash; both branch predictions wrong, loss perfect. That ambiguity is
         <b>Negative Branch Asymmetry (NBA)</b>, and it stays hidden until the guidance scale is recomposed.
         <b>Positive&ndash;Direction Matching (PDM)</b> constrains the positive prediction and the CFG direction
         separately, so zero loss requires zero error on both branches.
@@ -681,6 +692,6 @@
 </footer>
 
 <script defer src="js/curves-data.js?v=1"></script>
-<script defer src="js/main.js?v=20"></script>
+<script defer src="js/main.js?v=22"></script>
 </body>
 </html>
