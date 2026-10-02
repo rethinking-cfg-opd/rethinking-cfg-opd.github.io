@@ -470,6 +470,217 @@ function initCurveLab() {
   render();
 }
 
+/* ---- Interactive teaser: why checking only the composed step fails -------
+   A 1-D "ruler" view of CFG. Rewriting the composition as
+     v_cfg = v- + gamma * (v+ - v-)
+   makes it a walk: start at the negative guess, run gamma gaps past the
+   positive one. If the student's guesses slip by (sp, sn), its composed step
+   misses the teacher's by
+     miss = gamma*sp - (gamma-1)*sn,
+   which vanishes along a whole line of non-zero (sp, sn) -- the cancellation
+   that NBA is about. Drag the student's guesses to walk that line. */
+function initNbaDemo() {
+  const root = document.getElementById("nbademo");
+  const svg = document.getElementById("nbasvg");
+  if (!root || !svg) return;
+
+  const VBW = 920, X0 = 170, GAP = 104, YT = 92, YS = 192, LIM = 36;
+  const st = { sp: 0, sn: 0, g: 5 };
+
+  const starPts = (x, y, r) => {
+    let p = "";
+    for (let i = 0; i < 10; i++) {
+      const a = (Math.PI / 5) * i - Math.PI / 2, rr = i % 2 ? r * 0.45 : r;
+      p += `${(x + rr * Math.cos(a)).toFixed(1)},${(y + rr * Math.sin(a)).toFixed(1)} `;
+    }
+    return p.trim();
+  };
+
+  /* ---- static scaffold (built once; only attributes change afterwards) --- */
+  let grid = "", nums = "";
+  for (let k = 0; k <= 5; k++) {
+    const x = X0 + k * GAP;
+    grid += `<line class="nd-grid" x1="${x}" y1="56" x2="${x}" y2="240"/>`;
+    nums += `<text class="nd-gap" x="${x}" y="46">${k}</text>`;
+  }
+  const row = (id, y, label, drag) => `
+    <text class="nd-rowlab" x="148" y="${y + 5}">${label}</text>
+    <line class="nd-base" x1="${X0 - 26}" y1="${y}" x2="${VBW - 40}" y2="${y}"/>
+    <line class="nd-span" id="${id}-span" x1="0" y1="${y}" x2="0" y2="${y}"/>
+    <line class="nd-reach" id="${id}-reach" x1="0" y1="${y}" x2="0" y2="${y}"/>
+    <polygon class="nd-star" id="${id}-star" points=""/>
+    <circle class="nd-neg" id="${id}-neg" cy="${y}" r="7.5"/>
+    <circle class="nd-pos" id="${id}-pos" cy="${y}" r="7.5"/>
+    ${drag ? `<circle class="nd-hit" id="${id}-neghit" cy="${y}" r="17" tabindex="0" role="slider"
+                aria-label="student negative guess" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0"/>
+              <circle class="nd-hit" id="${id}-poshit" cy="${y}" r="17" tabindex="0" role="slider"
+                aria-label="student positive guess" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0"/>` : ""}`;
+
+  svg.innerHTML = `
+    <text class="nd-axislab" x="${X0 - 34}" y="46" text-anchor="end">gaps</text>
+    ${grid}${nums}
+    ${row("t", YT, "Teacher", false)}
+    ${row("s", YS, "Student", true)}
+    <line class="nd-drop" id="nd-drop" y1="${YT}" y2="300"/>
+    <line class="nd-miss" id="nd-missline" y1="${YS + 32}" y2="${YS + 32}"/>
+    <text class="nd-misslab" id="nd-misslab" y="${YS + 26}"></text>
+    <text class="nd-barlab" x="148" y="266" text-anchor="end">why it lands there</text>
+    <rect class="nd-bar nd-bar-pos" id="nd-barpos" y="252" height="14" rx="3"/>
+    <rect class="nd-bar nd-bar-neg" id="nd-barneg" y="276" height="14" rx="3"/>
+    <text class="nd-bartx" id="nd-barpostx" y="259"></text>
+    <text class="nd-bartx" id="nd-barnegtx" y="283"></text>
+    <text class="nd-cancel" id="nd-cancel" y="309" text-anchor="middle"></text>`;
+
+  const $ = (id) => svg.querySelector("#" + id);
+  const el = {
+    tspan: $("t-span"), treach: $("t-reach"), tstar: $("t-star"), tneg: $("t-neg"), tpos: $("t-pos"),
+    sspan: $("s-span"), sreach: $("s-reach"), sstar: $("s-star"), sneg: $("s-neg"), spos: $("s-pos"),
+    neghit: $("s-neghit"), poshit: $("s-poshit"),
+    drop: $("nd-drop"), missline: $("nd-missline"), misslab: $("nd-misslab"),
+    barpos: $("nd-barpos"), barneg: $("nd-barneg"),
+    barpostx: $("nd-barpostx"), barnegtx: $("nd-barnegtx"), cancel: $("nd-cancel"),
+  };
+  const readout = document.getElementById("nbareadout");
+  const status = document.getElementById("nbastatus");
+  const gIn = document.getElementById("nbagamma");
+  const gOut = document.getElementById("nbagammaout");
+
+  const fmt = (v) => (Math.abs(v) < 0.005 ? "0.00" : v.toFixed(2));
+
+  function render() {
+    const g = st.g;
+    const tNeg = X0, tPos = X0 + GAP, tStar = X0 + g * GAP;
+    const sNeg = X0 + st.sn, sPos = X0 + GAP + st.sp;
+    const sStar = sNeg + g * (sPos - sNeg);
+
+    el.tneg.setAttribute("cx", tNeg); el.tpos.setAttribute("cx", tPos);
+    el.sneg.setAttribute("cx", sNeg); el.spos.setAttribute("cx", sPos);
+    el.neghit.setAttribute("cx", sNeg); el.poshit.setAttribute("cx", sPos);
+    el.neghit.setAttribute("aria-valuenow", st.sn.toFixed(0));
+    el.poshit.setAttribute("aria-valuenow", st.sp.toFixed(0));
+
+    el.tspan.setAttribute("x1", tNeg); el.tspan.setAttribute("x2", tPos);
+    el.treach.setAttribute("x1", tPos); el.treach.setAttribute("x2", tStar);
+    el.sspan.setAttribute("x1", sNeg); el.sspan.setAttribute("x2", sPos);
+    el.sreach.setAttribute("x1", sPos); el.sreach.setAttribute("x2", sStar);
+    el.tstar.setAttribute("points", starPts(tStar, YT, 11));
+    el.sstar.setAttribute("points", starPts(sStar, YS, 11));
+
+    /* miss between the two landing points */
+    const miss = sStar - tStar, amiss = Math.abs(miss), off = amiss > 1.5;
+    el.drop.setAttribute("x1", tStar); el.drop.setAttribute("x2", tStar);
+    el.cancel.setAttribute("x", tStar);
+    el.missline.setAttribute("x1", tStar); el.missline.setAttribute("x2", sStar);
+    el.missline.classList.toggle("on", off);
+    el.misslab.setAttribute("x", (tStar + sStar) / 2);
+    el.misslab.textContent = off ? `misses by ${fmt(amiss / GAP)} gaps` : "";
+    el.sstar.classList.toggle("bad", off);
+
+    /* the two contributions, drawn from the teacher's landing point */
+    const push = st.sp * g, pull = -st.sn * (g - 1);
+    const bar = (r, t, len, label) => {
+      const x = len >= 0 ? tStar : tStar + len;
+      r.setAttribute("x", x); r.setAttribute("width", Math.max(Math.abs(len), 0.5));
+      const end = tStar + len;
+      t.setAttribute("x", len >= 0 ? end + 8 : end - 8);
+      t.setAttribute("text-anchor", len >= 0 ? "start" : "end");
+      t.textContent = Math.abs(len) < 1 ? "" : label;
+    };
+    bar(el.barpos, el.barpostx, push, `pushed out  γ·e₊ = ${fmt(Math.abs(push) / GAP)}`);
+    bar(el.barneg, el.barnegtx, pull, `pulled back  (γ−1)·e₋ = ${fmt(Math.abs(pull) / GAP)}`);
+    const cancelling = Math.abs(push) > 6 && amiss <= 1.5;
+    el.cancel.textContent = cancelling ? "same length, opposite ways → they cancel" : "";
+
+    /* losses, in units of one gap */
+    const ep = st.sp / GAP, en = st.sn / GAP;
+    const naive = Math.pow(g * ep - (g - 1) * en, 2);
+    const pdm = ep * ep + Math.pow(ep - en, 2);
+    const wrong = Math.abs(ep) > 0.02 || Math.abs(en) > 0.02;
+    readout.innerHTML = `
+      <div class="nd-stat"><span>branch error e&#8330;</span><b class="c-pos">${fmt(Math.abs(ep))}</b></div>
+      <div class="nd-stat"><span>branch error e&#8331;</span><b class="c-neg">${fmt(Math.abs(en))}</b></div>
+      <div class="nd-stat ${naive < 0.0025 ? "zero" : "nonzero"}"><span>naive loss</span><b>${fmt(naive)}</b></div>
+      <div class="nd-stat ${pdm < 0.0025 ? "zero" : "nonzero"}"><span>PDM loss</span><b>${fmt(pdm)}</b></div>`;
+
+    let cls = "ok", msg = "";
+    if (!wrong) {
+      msg = "<b>Both guesses match.</b> Every loss is zero — nothing to catch.";
+    } else if (naive < 0.0025) {
+      cls = "bad";
+      msg = "<b>Both guesses are wrong, yet the naive loss reads 0.</b> The slips cancel in the blend, " +
+            "so naive OPD sees a perfect student — PDM still sees the error. Now move γ: the two " +
+            "contributions are reweighted, the cancellation breaks, and the miss reappears.";
+    } else {
+      cls = "warn";
+      msg = `<b>The final step misses.</b> Naive loss ${fmt(naive)} — but notice it is one number for two ` +
+            "unknowns, so some other pair of wrong guesses would drive it back to 0.";
+    }
+    status.className = "tdemo-status " + cls;
+    status.innerHTML = msg;
+  }
+
+  /* ---- dragging ---------------------------------------------------------- */
+  const clamp = (v) => Math.max(-LIM, Math.min(LIM, v));
+  let raf = false;
+  const draw = () => { if (!raf) { raf = true; requestAnimationFrame(() => { raf = false; render(); }); } };
+
+  function attach(hit, key) {
+    hit.addEventListener("pointerdown", (e) => {
+      hit.setPointerCapture(e.pointerId);
+      const scale = VBW / svg.getBoundingClientRect().width;
+      const x0 = e.clientX, v0 = st[key];
+      root.classList.add("dragging");
+      const move = (ev) => { st[key] = clamp(v0 + (ev.clientX - x0) * scale); draw(); };
+      const up = (ev) => {
+        hit.releasePointerCapture(ev.pointerId);
+        hit.removeEventListener("pointermove", move);
+        hit.removeEventListener("pointerup", up);
+        hit.removeEventListener("pointercancel", up);
+        root.classList.remove("dragging");
+      };
+      hit.addEventListener("pointermove", move);
+      hit.addEventListener("pointerup", up);
+      hit.addEventListener("pointercancel", up);
+      e.preventDefault();
+    });
+    hit.addEventListener("keydown", (e) => {
+      const step = e.shiftKey ? 10 : 2;
+      if (e.key === "ArrowLeft") st[key] = clamp(st[key] - step);
+      else if (e.key === "ArrowRight") st[key] = clamp(st[key] + step);
+      else if (e.key === "Home") st[key] = 0;
+      else return;
+      e.preventDefault();
+      draw();
+    });
+  }
+  attach(el.poshit, "sp");
+  attach(el.neghit, "sn");
+
+  gIn.addEventListener("input", () => {
+    st.g = parseFloat(gIn.value);
+    gOut.textContent = gIn.value;
+    draw();
+  });
+
+  root.querySelectorAll(".tdemo-presets button").forEach((b) => {
+    b.addEventListener("click", () => {
+      const p = b.dataset.preset;
+      if (p === "perfect") { st.sp = 0; st.sn = 0; }
+      else if (p === "pos") { st.sp = 26; st.sn = 0; }
+      else if (p === "cancel") {
+        /* at gamma = 1 the composed step IS the positive guess, so the negative
+           branch is unconstrained outright -- show that instead of a pair */
+        if (st.g <= 1) { st.sp = 0; st.sn = 42; }
+        else { st.sp = 24; st.sn = clamp((24 * st.g) / (st.g - 1)); st.sp = (st.sn * (st.g - 1)) / st.g; }
+      }
+      root.querySelectorAll(".tdemo-presets button").forEach((o) => o.classList.toggle("on", o === b));
+      draw();
+    });
+  });
+
+  render();
+}
+
 /* ---- Scroll progress bar (rAF-throttled) ---------------------------------- */
 function initProgress() {
   const bar = document.createElement("div");
@@ -562,6 +773,7 @@ document.addEventListener("DOMContentLoaded", () => {
       throwOnError: false,
     });
   }
+  initNbaDemo();
   initCarousels();
   initTabs();
   initLightbox();

@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body>
 
@@ -70,38 +70,38 @@
   <div class="wrap">
     <figure class="fig teaser-fig" style="cursor:auto">
       <div class="teaser">
-        <div class="teaser-grid">
 
-          <!-- TOP-LEFT: PROBLEM -->
-          <div class="tcell">
-            <span class="tpill warn">The problem</span>
-            <h3 class="tp-title">Naive CFG-based OPD</h3>
-            <p class="tp-sub">Supervises <b>only the CFG-composed velocity</b> \(v_{\mathrm{cfg}} = \gamma v^{+} + (1-\gamma) v^{-}\).</p>
-            <div class="tdiagram">
-              <svg viewBox="0 0 260 172" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Only the composed velocity is supervised">
-                <defs>
-                  <marker id="lb" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#3f5efb"/></marker>
-                  <marker id="lr" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#d1495b"/></marker>
-                  <marker id="ld" markerWidth="7" markerHeight="7" refX="5.4" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1a1d29"/></marker>
-                </defs>
-                <!-- green halo = supervised: composed only -->
-                <line x1="42" y1="142" x2="198" y2="82" stroke="#14a06e" stroke-width="9" stroke-linecap="round" opacity=".22"/>
-                <!-- branch vectors (unconstrained) -->
-                <line x1="42" y1="142" x2="152" y2="46"  stroke="#3f5efb" stroke-width="2.3" marker-end="url(#lb)"/>
-                <line x1="42" y1="142" x2="232" y2="116" stroke="#d1495b" stroke-width="2.3" marker-end="url(#lr)"/>
-                <!-- composed (supervised) -->
-                <line x1="42" y1="142" x2="198" y2="82"  stroke="#1a1d29" stroke-width="3.4" marker-end="url(#ld)"/>
-                <text x="150" y="40"  font-size="12" fill="#3f5efb" font-style="italic">v⁺</text>
-                <text x="236" y="120" font-size="12" fill="#d1495b" font-style="italic">v⁻</text>
-                <text x="150" y="112" font-size="12" fill="#1a1d29" font-style="italic">v</text>
-                <text x="159" y="115" font-size="8"  fill="#1a1d29">cfg</text>
-                <circle cx="42" cy="142" r="3.2" fill="#1a1d29"/>
-              </svg>
-            </div>
-            <div class="tsuper"><span class="halo"></span> supervised: the composed velocity only</div>
-            <div class="teq">\(\ell_{\mathrm{naive}} = \lVert v_{\mathrm{cfg}}^{T} - v_{\mathrm{cfg}}^{S}\rVert_{2}^{2}\)</div>
-            <div class="tp-badge warn"><span class="ic">⚠</span><span><b>Negative Branch Asymmetry.</b> The teacher–student errors on the two branches stay unconstrained and can cancel — infinitely many degenerate solutions.</span></div>
+        <!-- INTERACTIVE: why checking only the final step fails -->
+        <div class="tcell tdemo" id="nbademo">
+          <span class="tpill warn">The problem &middot; interactive</span>
+          <h3 class="tp-title">Two guesses, one final step</h3>
+          <p class="tp-sub">Every CFG step makes two guesses: a <b class="c-pos">positive</b> one with the prompt and a
+            <b class="c-neg">negative</b> one without. The step actually taken starts at the negative guess and runs
+            <b>&gamma; gaps</b> past the positive one. Naive OPD only checks where that step lands &mdash;
+            not the two guesses behind it.</p>
+          <p class="tdemo-hint"><b>Drag the student&rsquo;s two guesses</b>, or try a preset &mdash; then change &gamma;.</p>
+          <div class="tdemo-stage">
+            <svg id="nbasvg" viewBox="0 0 920 322" role="img"
+                 aria-label="Interactive diagram: the teacher's and student's CFG guesses on a ruler"></svg>
           </div>
+          <div class="tdemo-controls">
+            <label class="tdemo-gamma">
+              <span>guidance scale &gamma;</span>
+              <input type="range" id="nbagamma" min="1" max="5" step="0.5" value="5"
+                     aria-label="guidance scale gamma">
+              <output id="nbagammaout">5</output>
+            </label>
+            <div class="tdemo-presets">
+              <button type="button" data-preset="perfect">Perfect student</button>
+              <button type="button" data-preset="pos">Only v&#8314; slips</button>
+              <button type="button" data-preset="cancel">Errors that cancel</button>
+            </div>
+          </div>
+          <div class="tdemo-readout" id="nbareadout"></div>
+          <div class="tdemo-status" id="nbastatus"></div>
+        </div>
+
+        <div class="teaser-grid">
 
           <!-- TOP-RIGHT: SOLUTION -->
           <div class="tcell">
@@ -133,41 +133,6 @@
             <div class="tsuper"><span class="halo"></span> supervised: the positive prediction v⁺ <i>and</i> the direction d</div>
             <div class="teq">\(\ell_{\mathrm{PDM}} = \lVert v_T^{+} - v_S^{+}\rVert_{2}^{2} + \lambda\lVert d_T - d_S\rVert_{2}^{2}\)</div>
             <div class="tp-badge ok"><span class="ic">✓</span><span><b>Identifiable supervision.</b> No cross-branch cancellation, so distillation stays stable and effective across guidance scales.</span></div>
-          </div>
-
-          <!-- BOTTOM-LEFT: WHY NBA ARISES -->
-          <div class="tcell">
-            <span class="tpill warn">Why</span>
-            <h3 class="ta-head">Negative Branch Asymmetry</h3>
-            <p class="ta-sub">Let \(e^{+}, e^{-}\) be the teacher–student error on the positive / negative branch. Matching only \(v_{\mathrm{cfg}}\) pins down just <b>one</b> combination of them.</p>
-            <div class="nba-flex">
-              <svg viewBox="0 0 210 168" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Every error pair on the line is an equally optimal solution">
-                <defs>
-                  <marker id="ax" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#868ea3"/></marker>
-                </defs>
-                <!-- axes -->
-                <line x1="40" y1="140" x2="198" y2="140" stroke="#868ea3" stroke-width="1.3" marker-end="url(#ax)"/>
-                <line x1="40" y1="140" x2="40"  y2="16"  stroke="#868ea3" stroke-width="1.3" marker-end="url(#ax)"/>
-                <text x="196" y="156" font-size="12" fill="#4a5064" font-style="italic">e</text>
-                <text x="204" y="159" font-size="9"  fill="#4a5064">+</text>
-                <text x="24"  y="22"  font-size="12" fill="#4a5064" font-style="italic">e</text>
-                <text x="32"  y="25"  font-size="9"  fill="#4a5064">−</text>
-                <text x="30"  y="153" font-size="11" fill="#868ea3">0</text>
-                <!-- cancellation line + glow -->
-                <line x1="40" y1="140" x2="176" y2="34" stroke="#d1495b" stroke-width="8" opacity=".18" stroke-linecap="round"/>
-                <line x1="40" y1="140" x2="176" y2="34" stroke="#d1495b" stroke-width="2.6"/>
-                <!-- equally-optimal solutions on the line -->
-                <g fill="#fff" stroke="#d1495b" stroke-width="2">
-                  <circle cx="74"  cy="113" r="5"/><circle cx="101" cy="92" r="5"/>
-                  <circle cx="128" cy="71"  r="5"/><circle cx="155" cy="50" r="5"/>
-                </g>
-              </svg>
-              <div class="nba-txt">
-                <span class="nba-def">\(e^{+} = v_T^{+} - v_S^{+} \qquad e^{-} = v_T^{-} - v_S^{-}\)<span class="dim">teacher − student prediction error, per branch</span></span>
-                <span class="nba-eq">\(\gamma\, e^{+} + (1-\gamma)\, e^{-} = 0\)</span>
-                Every \((e^{+}, e^{-})\) on this line is <b>equally optimal</b> — the errors cancel and stay unconstrained. That ambiguity is <b>NBA</b>.
-              </div>
-            </div>
           </div>
 
           <!-- BOTTOM-RIGHT: WHAT IT COSTS -->
@@ -219,10 +184,12 @@
         </div>
       </div>
       <figcaption>
-        Naive CFG-based OPD supervises only the composed velocity, so teacher–student errors on the positive and
-        negative branches can cancel — the ambiguity we term <b>Negative Branch Asymmetry (NBA)</b>.
-        <b>Positive–Direction Matching (PDM)</b> instead constrains the positive prediction and the CFG conditional
-        direction separately, yielding identifiable supervision that remains stable across inference guidance scales.
+        <b>Matching only the composed step is under-identified.</b> Its miss is
+        &gamma;&middot;e<sub>+</sub> &minus; (&gamma;&minus;1)&middot;e<sub>&minus;</sub>, so a whole line of non-zero
+        branch-error pairs drives it to zero &mdash; both guesses wrong, loss perfect. That ambiguity is
+        <b>Negative Branch Asymmetry (NBA)</b>, and it stays hidden until the guidance scale is recomposed.
+        <b>Positive&ndash;Direction Matching (PDM)</b> constrains the positive prediction and the CFG direction
+        separately, so zero loss requires zero error on both branches.
       </figcaption>
     </figure>
   </div>
@@ -714,6 +681,6 @@
 </footer>
 
 <script defer src="js/curves-data.js?v=1"></script>
-<script defer src="js/main.js?v=19"></script>
+<script defer src="js/main.js?v=20"></script>
 </body>
 </html>
