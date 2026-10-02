@@ -152,7 +152,6 @@ h3.subsec .idx {
 /* ---------- HTML teaser: uniform 2x2 grid ---------- */
 .teaser { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 /* 1px gap over a line-colored bg draws the clean cross divider */
-.teaser-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
 .tcell { background: #fff; padding: 24px 28px; display: flex; flex-direction: column; }
 
 /* shared pill tag — top-left in every cell */
@@ -165,37 +164,13 @@ h3.subsec .idx {
 .tpill.neutral { color: var(--ink-soft); background: var(--bg-alt); }
 
 .tp-title { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 0 0 4px; }
-.tp-sub { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 4px; line-height: 1.5; }
 .tdiagram { display: flex; justify-content: center; margin: auto 0 6px; padding-top: 10px; }
 .tdiagram svg { width: 100%; max-width: 320px; height: auto; }
-.tsuper { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 12px; }
-.tsuper .halo { flex: 0 0 auto; width: 22px; height: 8px; border-radius: 5px; background: rgba(20,160,110,.24); display: inline-block; }
 .teq {
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
   background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px;
   padding: 9px 12px; text-align: center; color: var(--ink);
 }
-.tp-badge { margin-top: 12px; font-size: 13.5px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
-.tp-badge.warn { color: #8f2f3e; }
-.tp-badge.ok   { color: #0f7a53; }
-.tp-badge .ic { flex: 0 0 auto; font-size: 15px; line-height: 1.4; }
-
-.ta-head { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 0 0 4px; }
-.ta-sub { color: var(--ink-soft); font-size: 13px; margin: 0 0 14px; line-height: 1.5; }
-.nba-flex { display: flex; gap: 14px; align-items: center; margin: 8px 0 auto; }
-.nba-flex > svg { flex: 0 0 148px; width: 148px; height: auto; }
-.nba-txt { font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
-.nba-def { display: block; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; color: var(--ink); margin-bottom: 8px; line-height: 1.7; }
-.nba-def .dim { display: block; font-family: var(--font); color: var(--ink-faint); font-size: 11px; margin-top: 1px; }
-.nba-eq { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; color: var(--warn); font-weight: 600; display: block; margin-bottom: 6px; }
-.plegend { display: flex; gap: 16px; justify-content: center; font-size: 12px; margin: 2px 0 8px; }
-.plegend span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); }
-.plegend .psw { width: 15px; height: 3px; border-radius: 2px; display: inline-block; }
-.plots { display: flex; gap: 16px; }
-.plots figure { margin: 0; flex: 1; min-width: 0; }
-.plots .pt { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
-.plots svg { width: 100%; height: auto; }
-.ta-cap { font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
 
 .m { font-style: italic; }
 .m sub, .m sup { font-style: normal; }
@@ -503,7 +478,6 @@ table.qtable tr.grp td, table.qtable tr.grp th { border-top: 2px solid var(--lin
 .eq .body .katex { font-size: 1.18em; }
 .eq .body { font-family: inherit; }
 .teq .katex, .nba-eq .katex, .nba-def .katex, .condeq .katex, .pr-eq .katex { font-size: 1em; }
-.nba-eq .katex { color: var(--warn); }
 /* keep the tag label sans, not stretched by KaTeX */
 .eq .tag { font-family: var(--font); }
 
@@ -653,10 +627,16 @@ footer a { color: var(--ink-soft); }
 }
 
 /* ---------- Interactive teaser: branch predictions on one axis ---------- */
-.tdemo { border-bottom: 1px solid var(--line); }
-.tdemo .tp-sub { max-width: 84ch; }
-.tdemo-hint { font-size: 13px; color: var(--accent-dark); margin: 2px 0 10px; }
-.tdemo-stage { margin: 2px 0 6px; }
+.tdemo { text-align: left; }
+.tdemo .tpill, .tdemo .tp-title { align-self: center; }
+.tdemo .tp-title { text-align: center; }
+.tdemo-intro { max-width: 760px; margin: 2px auto 4px; }
+.tdemo-intro p { color: var(--ink-soft); font-size: 15px; line-height: 1.62; margin: 0 0 10px; }
+.tdemo-intro p:last-child { margin-bottom: 0; }
+.tdemo-intro b { color: var(--ink); }
+.tdemo-eq { margin: 14px 0 12px; text-align: center; }
+.tdemo-eq .katex-display { margin: 0; }
+.tdemo-stage { margin: 14px 0 6px; }
 .tdemo-stage svg { width: 100%; height: auto; display: block; overflow: visible; }
 .tdemo.dragging, .tdemo.dragging .nd-hit { cursor: grabbing; }
 
@@ -738,10 +718,12 @@ footer a { color: var(--ink-soft); }
 }
 .nd-stat span { font-size: 11.5px; color: var(--ink-faint); }
 .nd-stat b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.nd-stat b { color: var(--ink); }
 .nd-stat.e-pos b { color: var(--accent); }
 .nd-stat.e-neg b { color: var(--warn); }
-.nd-stat.zero b { color: var(--ours); }
-.nd-stat.nonzero b { color: var(--warn); }
+.nd-note { font-style: normal; font-size: 11.5px; font-weight: 650; margin-top: 1px; }
+.nd-note.miss { color: var(--warn); }
+.nd-note.hit { color: var(--ours); }
 .nd-stat.active { border-color: var(--ours); box-shadow: 0 0 0 2px var(--ours-soft); background: #fff; }
 .tdemo-status {
   margin-top: 12px; font-size: 14px; line-height: 1.55; color: var(--ink-soft);

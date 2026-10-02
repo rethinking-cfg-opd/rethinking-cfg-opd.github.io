@@ -486,7 +486,10 @@ function initNbaDemo() {
   if (!root || !svg) return;
 
   const VBW = 920, X0 = 252, D = 90, YT = 96, YS = 206, LIM = 34;
-  const st = { ep: 0, en: 0, g: 5, obj: "naive" };
+  /* Open on the cancelling pair (Eq. 7 at gamma = 5, matching the preset that
+     is marked active in the markup): the reader should land on the paradox,
+     not on a configuration where nothing is wrong. */
+  const st = { ep: 24, en: 30, g: 5, obj: "naive" };
 
   const starPts = (x, y, r) => {
     let p = "";
@@ -647,13 +650,19 @@ function initNbaDemo() {
     const naiveL = Math.pow(g * ep - (g - 1) * en, 2);
     const pdmL = ep * ep + Math.pow(ep - en, 2);
     const wrong = Math.abs(ep) > 0.02 || Math.abs(en) > 0.02;
-    const card = (lab, val, cls, active) =>
-      `<div class="nd-stat ${cls}${active ? " active" : ""}"><span>${lab}</span><b>${fmt(val)}</b></div>`;
+    /* The cards report numbers; a verdict line carries the meaning, because
+       "loss = 0" is exactly what is misleading here and must not read green. */
+    const card = (lab, val, cls, active, note, noteCls) =>
+      `<div class="nd-stat ${cls}${active ? " active" : ""}"><span>${lab}</span><b>${fmt(val)}</b>` +
+      (note ? `<em class="nd-note ${noteCls}">${note}</em>` : "") + `</div>`;
+    const naiveBlind = wrong && naiveL < 0.0025;
     readout.innerHTML =
       card("branch discrepancy e&#8330;", Math.abs(ep), "e-pos", false) +
       card("branch discrepancy e&#8331;", Math.abs(en), "e-neg", false) +
-      card("naive loss &#8467;<sub>naive</sub>", naiveL, naiveL < 0.0025 ? "zero" : "nonzero", !pdm) +
-      card("PDM loss &#8467;<sub>PDM</sub> (&lambda;=1)", pdmL, pdmL < 0.0025 ? "zero" : "nonzero", pdm);
+      card("naive loss &#8467;<sub>naive</sub>", naiveL, "", !pdm,
+           !wrong ? "nothing to flag" : naiveBlind ? "blind to it" : "flags it", naiveBlind ? "miss" : "hit") +
+      card("PDM loss &#8467;<sub>PDM</sub> (&lambda;=1)", pdmL, "", pdm,
+           !wrong ? "nothing to flag" : "catches it", "hit");
 
     let cls = "ok", msg = "";
     if (!wrong) {
